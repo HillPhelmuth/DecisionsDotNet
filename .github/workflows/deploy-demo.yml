@@ -6,6 +6,7 @@ on:
     paths:
       - 'JevDotNet/**'
       - 'JevDotNet.AI/**'
+      - 'ExtractionsDotNet/**'
       - 'JevDotNet.Demo/**'
       - 'JevDotNet.Tests/**'
       - 'JevDotNet.slnx'
