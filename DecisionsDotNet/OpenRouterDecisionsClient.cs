@@ -4,8 +4,10 @@ using System.Text.Json;
 
 namespace DecisionsDotNet;
 
+/// <summary>The base URI, model capability overrides, and retry settings for <see cref="OpenRouterDecisionsClient"/>.</summary>
 public sealed class OpenRouterDecisionsClientOptions : DecisionsClientOptions
 {
+    /// <summary>Absolute HTTPS origin serving OpenRouter's API routes.</summary>
     public Uri BaseUri { get; init; } = new("https://openrouter.ai/");
     /// <summary>Input modalities keyed by exact model ID. Overrides bypass catalog discovery for that model.</summary>
     public IReadOnlyDictionary<string, IReadOnlyList<string>> ModelInputModalitiesOverrides { get; init; }
@@ -24,6 +26,10 @@ public sealed class OpenRouterDecisionsClient : IDecisionsClient, IDisposable
     private readonly RetryPolicy _retry;
     private static readonly IReadOnlySet<int> RetryableStatusCodes = new HashSet<int> { 429, 502, 503, 529 };
 
+    /// <summary>Creates a client.</summary>
+    /// <param name="apiKey">An OpenRouter API key.</param>
+    /// <param name="httpClient">An optional caller-owned client. When omitted, the client creates and disposes its own.</param>
+    /// <param name="options">The base URI, capability overrides, and retry settings. Defaults apply when omitted.</param>
     public OpenRouterDecisionsClient(
         string apiKey,
         HttpClient? httpClient = null,
@@ -41,12 +47,17 @@ public sealed class OpenRouterDecisionsClient : IDecisionsClient, IDisposable
         _ownsHttpClient = httpClient is null;
     }
 
+    /// <summary>Creates a client using the <c>OPENROUTER_API_KEY</c> environment variable.</summary>
     public static OpenRouterDecisionsClient FromEnvironment(
         HttpClient? httpClient = null,
         OpenRouterDecisionsClientOptions? options = null)
         => new(Environment.GetEnvironmentVariable("OPENROUTER_API_KEY")
             ?? throw new InvalidOperationException("OPENROUTER_API_KEY is not set."), httpClient, options);
 
+    /// <inheritdoc />
+    /// <exception cref="NotSupportedException">The request has images that the model is not known to accept, or images outside the top-level state array.</exception>
+    /// <exception cref="DecisionsApiException">OpenRouter returned an HTTP error that was not retried or outlasted its retries.</exception>
+    /// <exception cref="System.Text.Json.JsonException">The response did not match the questions asked.</exception>
     public async Task<DecisionsResponse> EvaluateAsync(
         DecisionsRequest request,
         CancellationToken cancellationToken = default)
@@ -102,6 +113,7 @@ public sealed class OpenRouterDecisionsClient : IDecisionsClient, IDisposable
         return OpenRouterModelCatalog.Parse(content);
     }
 
+    /// <summary>Disposes the HTTP client when this instance created it. A caller-supplied client is left alone.</summary>
     public void Dispose()
     {
         if (_ownsHttpClient) _httpClient.Dispose();

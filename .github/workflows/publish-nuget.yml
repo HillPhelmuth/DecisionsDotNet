@@ -45,18 +45,17 @@ jobs:
         run: dotnet restore JevDotNet.slnx
 
       - name: Build
-        # Disable the library's automatic packaging to its local Windows path.
-        run: dotnet build JevDotNet.slnx --configuration Release --no-restore -p:GeneratePackageOnBuild=false -p:ContinuousIntegrationBuild=true
+        run: dotnet build JevDotNet.slnx --configuration Release --no-restore
 
       - name: Run tests
         run: dotnet test --project JevDotNet.Tests/JevDotNet.Tests.csproj --configuration Release --no-build
 
       - name: Pack DecisionsDotNet
-        run: dotnet pack DecisionsDotNet/DecisionsDotNet.csproj --configuration Release --no-build --output ./artifacts/nuget -p:GeneratePackageOnBuild=false -p:ContinuousIntegrationBuild=true
+        run: dotnet pack DecisionsDotNet/DecisionsDotNet.csproj --configuration Release --no-build --output ./artifacts/nuget
       - name: Pack DecisionsDotNet.AI
-        run: dotnet pack DecisionsDotNet.AI/DecisionsDotNet.AI.csproj --configuration Release --no-build --output ./artifacts/nuget -p:GeneratePackageOnBuild=false -p:ContinuousIntegrationBuild=true
+        run: dotnet pack DecisionsDotNet.AI/DecisionsDotNet.AI.csproj --configuration Release --no-build --output ./artifacts/nuget
       - name: Pack ExtractionsDotNet
-        run: dotnet pack ExtractionsDotNet/ExtractionsDotNet.csproj --configuration Release --no-build --output ./artifacts/nuget -p:GeneratePackageOnBuild=false -p:ContinuousIntegrationBuild=true
+        run: dotnet pack ExtractionsDotNet/ExtractionsDotNet.csproj --configuration Release --no-build --output ./artifacts/nuget
     # - name: Publish packages and symbols to nuget.org
     #    env:
     #      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}

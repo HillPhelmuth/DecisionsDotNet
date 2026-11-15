@@ -1,0 +1,16 @@
+#nullable enable
+DecisionsDotNet.AI.DecisionsAIFunctions
+DecisionsDotNet.AI.DecisionToolQuestion
+DecisionsDotNet.AI.DecisionToolQuestion.DecisionToolQuestion(string! Id, string! Type, string! Instructions, string![]? Options = null, string![]? Levels = null) -> void
+DecisionsDotNet.AI.DecisionToolQuestion.Id.get -> string!
+DecisionsDotNet.AI.DecisionToolQuestion.Id.init -> void
+DecisionsDotNet.AI.DecisionToolQuestion.Instructions.get -> string!
+DecisionsDotNet.AI.DecisionToolQuestion.Instructions.init -> void
+DecisionsDotNet.AI.DecisionToolQuestion.Levels.get -> string![]?
+DecisionsDotNet.AI.DecisionToolQuestion.Levels.init -> void
+DecisionsDotNet.AI.DecisionToolQuestion.Options.get -> string![]?
+DecisionsDotNet.AI.DecisionToolQuestion.Options.init -> void
+DecisionsDotNet.AI.DecisionToolQuestion.Type.get -> string!
+DecisionsDotNet.AI.DecisionToolQuestion.Type.init -> void
+static DecisionsDotNet.AI.DecisionsAIFunctions.AsAIFunction(this DecisionsDotNet.IDecisionsClient! client, string! name, string! description, System.Collections.Generic.IReadOnlyDictionary<string!, DecisionsDotNet.DecisionsQuestion!>! questions, string! model) -> Microsoft.Extensions.AI.AIFunction!
+static DecisionsDotNet.AI.DecisionsAIFunctions.AsOpenDecisionsAIFunction(this DecisionsDotNet.IDecisionsClient! client, string! model, string! name = "evaluate_decisions", string? description = null) -> Microsoft.Extensions.AI.AIFunction!

@@ -3,7 +3,7 @@
 A .NET 10 client for OpenRouter's alpha Extractions API.
 
 ```powershell
-dotnet add package ExtractionsDotNet --version 0.3.0-preview
+dotnet add package ExtractionsDotNet
 ```
 
 ## Discover models
@@ -106,3 +106,7 @@ public sealed class InvoiceReader(IExtractionsClient extractions)
 Use `AddKeyedOpenRouterExtractionsClient(key, ...)` to register differently configured clients side by side.
 
 [OpenRouter Extractions guide](https://openrouter.ai/docs/guides/community/extractions) · [REST reference](https://openrouter.ai/docs/api/api-reference/alphaextractions/submit-an-extractions-request)
+
+## Stability
+
+From 1.0.0 the public types in this package follow semantic versioning. OpenRouter still serves Extractions under `/api/alpha/`, so the wire format can change underneath the SDK. When it does, the SDK adapts in a minor or patch release and keeps its own types stable where it can. See the [changelog](https://github.com/HillPhelmuth/JevDotNet/blob/main/CHANGELOG.md).

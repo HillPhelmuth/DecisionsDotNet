@@ -43,11 +43,16 @@ public sealed class DecisionsBatchResult<TItem>
 
     /// <summary>The one-based request number.</summary>
     public int Number { get; }
+    /// <summary>The items sent in this request.</summary>
     public IReadOnlyList<TItem> Items { get; }
+    /// <summary>How long the request took, including retries.</summary>
     public TimeSpan Elapsed { get; }
+    /// <summary>The provider's response, or null when the request failed.</summary>
     public DecisionsResponse? Response { get; }
+    /// <summary>The failure, or null when the request succeeded.</summary>
     public Exception? Error { get; }
 
+    /// <summary>True when the request returned a response.</summary>
     public bool Succeeded => Response is not null;
 
     /// <summary>Reads one item's answer to the question with the given key.</summary>
@@ -56,6 +61,7 @@ public sealed class DecisionsBatchResult<TItem>
             .GetAnswer<TAnswer>(DecisionsBatch.QuestionId(_itemId(item), questionKey));
 }
 
+/// <summary>Evaluates many items in a few requests that ask the same questions about each item.</summary>
 public static class DecisionsBatch
 {
     /// <summary>The question ID used for an item's question in a batched request.</summary>

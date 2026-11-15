@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -23,6 +24,7 @@ public static class DecisionsServiceCollectionExtensions
         return services.AddTypeSafeDecisionsClient(apiKey, new TypeSafeDecisionsClientOptions { BaseUri = baseUri });
     }
 
+    /// <summary>Registers the direct TypeSafe client as <see cref="IDecisionsClient"/> with the given API key.</summary>
     public static IHttpClientBuilder AddTypeSafeDecisionsClient(
         this IServiceCollection services,
         string apiKey,
@@ -36,6 +38,7 @@ public static class DecisionsServiceCollectionExtensions
             .AddTypedClient<IDecisionsClient>((httpClient, _) => new TypeSafeDecisionsClient(apiKey, httpClient, options));
     }
 
+    /// <summary>Registers the direct TypeSafe client as <see cref="IDecisionsClient"/> using the <c>TypeSafe:ApiKey</c> configuration value.</summary>
     public static IHttpClientBuilder AddTypeSafeDecisionsClient(
         this IServiceCollection services,
         IConfiguration configuration,
@@ -49,6 +52,7 @@ public static class DecisionsServiceCollectionExtensions
         return services.AddTypeSafeDecisionsClient(apiKey, options);
     }
 
+    /// <summary>Registers the OpenRouter client as <see cref="IDecisionsClient"/> with the given API key.</summary>
     public static IHttpClientBuilder AddOpenRouterDecisionsClient(
         this IServiceCollection services,
         string apiKey,
@@ -62,6 +66,7 @@ public static class DecisionsServiceCollectionExtensions
             .AddTypedClient<IDecisionsClient>((httpClient, _) => new OpenRouterDecisionsClient(apiKey, httpClient, options));
     }
 
+    /// <summary>Registers the OpenRouter client as <see cref="IDecisionsClient"/> using the <c>OpenRouter:ApiKey</c> configuration value.</summary>
     public static IHttpClientBuilder AddOpenRouterDecisionsClient(
         this IServiceCollection services,
         IConfiguration configuration,
@@ -94,6 +99,7 @@ public static class DecisionsServiceCollectionExtensions
         return services.AddHttpClient(name);
     }
 
+    /// <summary>Registers a keyed direct TypeSafe client using the <c>TypeSafe:ApiKey</c> configuration value.</summary>
     public static IHttpClientBuilder AddKeyedTypeSafeDecisionsClient(
         this IServiceCollection services,
         object serviceKey,
@@ -127,6 +133,7 @@ public static class DecisionsServiceCollectionExtensions
         return services.AddHttpClient(name);
     }
 
+    /// <summary>Registers a keyed OpenRouter client using the <c>OpenRouter:ApiKey</c> configuration value.</summary>
     public static IHttpClientBuilder AddKeyedOpenRouterDecisionsClient(
         this IServiceCollection services,
         object serviceKey,
@@ -141,6 +148,8 @@ public static class DecisionsServiceCollectionExtensions
         return services.AddKeyedOpenRouterDecisionsClient(serviceKey, apiKey, options);
     }
 
+    /// <summary>Registers the OpenAI client as <see cref="IDecisionsClient"/> with the given API key.</summary>
+    [Experimental(DecisionsDiagnostics.OpenAIClient, UrlFormat = DecisionsDiagnostics.UrlFormat)]
     public static IHttpClientBuilder AddOpenAIDecisionsClient(
         this IServiceCollection services,
         string apiKey,
@@ -154,6 +163,8 @@ public static class DecisionsServiceCollectionExtensions
             .AddTypedClient<IDecisionsClient>((httpClient, _) => new OpenAIDecisionsClient(apiKey, httpClient, options));
     }
 
+    /// <summary>Registers the OpenAI client as <see cref="IDecisionsClient"/> using the <c>OpenAI:ApiKey</c> configuration value.</summary>
+    [Experimental(DecisionsDiagnostics.OpenAIClient, UrlFormat = DecisionsDiagnostics.UrlFormat)]
     public static IHttpClientBuilder AddOpenAIDecisionsClient(
         this IServiceCollection services,
         IConfiguration configuration,
@@ -161,6 +172,7 @@ public static class DecisionsServiceCollectionExtensions
         => services.AddOpenAIDecisionsClient(OpenAIKey(configuration), options);
 
     /// <summary>Registers an OpenAI client as a keyed <see cref="IDecisionsClient"/>, so it can sit beside other providers.</summary>
+    [Experimental(DecisionsDiagnostics.OpenAIClient, UrlFormat = DecisionsDiagnostics.UrlFormat)]
     public static IHttpClientBuilder AddKeyedOpenAIDecisionsClient(
         this IServiceCollection services,
         object serviceKey,
@@ -179,6 +191,8 @@ public static class DecisionsServiceCollectionExtensions
         return services.AddHttpClient(name);
     }
 
+    /// <summary>Registers a keyed OpenAI client using the <c>OpenAI:ApiKey</c> configuration value.</summary>
+    [Experimental(DecisionsDiagnostics.OpenAIClient, UrlFormat = DecisionsDiagnostics.UrlFormat)]
     public static IHttpClientBuilder AddKeyedOpenAIDecisionsClient(
         this IServiceCollection services,
         object serviceKey,

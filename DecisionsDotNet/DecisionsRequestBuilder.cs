@@ -3,6 +3,7 @@ namespace DecisionsDotNet;
 /// <summary>A question ID that remembers its answer type, for reading answers without casts.</summary>
 public readonly record struct DecisionKey<TAnswer>(string Id) where TAnswer : DecisionsAnswer
 {
+    /// <summary>Returns the question ID.</summary>
     public override string ToString() => Id;
 }
 
@@ -22,12 +23,15 @@ public sealed class DecisionsRequestBuilder
     private readonly DecisionsValue _state;
     private readonly Dictionary<string, DecisionsQuestion> _questions = new(StringComparer.Ordinal);
 
+    /// <summary>Starts a builder for the given state. <see cref="DecisionsRequest.Create"/> does the same.</summary>
     public DecisionsRequestBuilder(DecisionsValue state)
         => _state = state ?? throw new ArgumentNullException(nameof(state));
 
     /// <summary>The questions added so far, keyed by ID.</summary>
     public IReadOnlyDictionary<string, DecisionsQuestion> Questions => _questions;
 
+    /// <summary>Adds a question of any type under the given ID.</summary>
+    /// <exception cref="ArgumentException">The ID is blank or already used.</exception>
     public DecisionsRequestBuilder Question(string id, DecisionsQuestion question)
     {
         if (string.IsNullOrWhiteSpace(id))
@@ -44,6 +48,7 @@ public sealed class DecisionsRequestBuilder
         => Question(id, new NoulQuestion(instructions,
             whenTrue is null && whenFalse is null ? null : new NoulCriteria(whenTrue, whenFalse)));
 
+    /// <summary>Adds a yes/no question and returns a typed key for reading its answer.</summary>
     public DecisionsRequestBuilder Noul(string id, DecisionsValue instructions, out DecisionKey<NoulAnswer> key,
         DecisionsValue? whenTrue = null, DecisionsValue? whenFalse = null)
     {
@@ -59,6 +64,7 @@ public sealed class DecisionsRequestBuilder
             options.ToDictionary(option => option, _ => (DecisionsValue?)null, StringComparer.Ordinal)));
     }
 
+    /// <summary>Adds a choice among plain options and returns a typed key for reading its answer.</summary>
     public DecisionsRequestBuilder Choice(string id, DecisionsValue instructions, out DecisionKey<ChoiceAnswer> key,
         params string[] options)
     {
@@ -80,6 +86,7 @@ public sealed class DecisionsRequestBuilder
         return Question(id, new ChoiceQuestion(instructions, criteria));
     }
 
+    /// <summary>Adds a choice among described options and returns a typed key for reading its answer.</summary>
     public DecisionsRequestBuilder Choice(string id, DecisionsValue instructions, out DecisionKey<ChoiceAnswer> key,
         params (string Option, DecisionsValue? Criterion)[] options)
     {
@@ -91,6 +98,7 @@ public sealed class DecisionsRequestBuilder
     public DecisionsRequestBuilder Score(string id, DecisionsValue instructions, params DecisionsValue[] levels)
         => Question(id, new ScoreQuestion(instructions, levels));
 
+    /// <summary>Adds a score across ordered levels, lowest first, and returns a typed key for reading its answer.</summary>
     public DecisionsRequestBuilder Score(string id, DecisionsValue instructions, out DecisionKey<ScoreAnswer> key,
         params DecisionsValue[] levels)
     {
@@ -102,6 +110,7 @@ public sealed class DecisionsRequestBuilder
     public DecisionsRequestBuilder Box(string id, DecisionsValue instructions)
         => Question(id, new BoxQuestion(instructions));
 
+    /// <summary>Adds a bounding-box question and returns a typed key for reading its answer.</summary>
     public DecisionsRequestBuilder Box(string id, DecisionsValue instructions, out DecisionKey<BoxAnswer> key)
     {
         key = new(id);

@@ -1,0 +1,38 @@
+<Project>
+
+  <!-- Versions. DecisionsDotNet and DecisionsDotNet.AI always ship together; ExtractionsDotNet versions on its own. -->
+  <PropertyGroup>
+    <DecisionsVersion>0.3.0-preview</DecisionsVersion>
+    <ExtractionsVersion>0.3.0-preview</ExtractionsVersion>
+  </PropertyGroup>
+
+  <!-- The three shipped packages. Everything conditioned on IsShippedPackage skips the demo and tests. -->
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'DecisionsDotNet' or '$(MSBuildProjectName)' == 'DecisionsDotNet.AI' or '$(MSBuildProjectName)' == 'ExtractionsDotNet'">
+    <IsShippedPackage>true</IsShippedPackage>
+    <!-- Every public member needs an XML doc comment; a missing one (CS1591) fails the build. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- RS00xx: the public surface must match PublicAPI.Shipped.txt and PublicAPI.Unshipped.txt, so API changes are a visible diff. -->
+    <WarningsAsErrors>$(WarningsAsErrors);CS1591;RS0016;RS0017;RS0036;RS0037</WarningsAsErrors>
+    <!-- RS0026/RS0027 object to overloads that both take optional parameters; the Add* and builder overloads are deliberate. -->
+    <NoWarn>$(NoWarn);RS0026;RS0027</NoWarn>
+    <!-- Checks the package against itself today; set PackageValidationBaselineVersion to 1.0.0 once that ships. -->
+    <EnablePackageValidation>true</EnablePackageValidation>
+  </PropertyGroup>
+
+  <!-- Settings shared by the three packages. Harmless for the demo and tests, which are never packed. -->
+  <PropertyGroup>
+    <Authors>Adam Holm</Authors>
+    <Copyright>Copyright (c) Adam Holm</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/HillPhelmuth/JevDotNet</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/HillPhelmuth/JevDotNet</RepositoryUrl>
+    <PackageReleaseNotes>https://github.com/HillPhelmuth/JevDotNet/blob/main/CHANGELOG.md</PackageReleaseNotes>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+</Project>

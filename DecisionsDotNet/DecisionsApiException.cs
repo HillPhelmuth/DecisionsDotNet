@@ -5,6 +5,7 @@ namespace DecisionsDotNet;
 /// <summary>A Decisions provider answered with an HTTP error that was not retried, or that outlasted its retries.</summary>
 public sealed class DecisionsApiException : HttpRequestException
 {
+    /// <summary>Creates the exception from the provider's status and response body.</summary>
     public DecisionsApiException(HttpStatusCode statusCode, string responseBody, string service = "TypeSafe")
         : base($"{service} API returned HTTP {(int)statusCode} ({statusCode}).", null, statusCode)
     {

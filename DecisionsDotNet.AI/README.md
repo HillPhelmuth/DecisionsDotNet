@@ -3,7 +3,7 @@
 Turns any DecisionsDotNet `IDecisionsClient` (TypeSafe Jev, OpenRouter, or OpenAI Decisions) into a Microsoft.Extensions.AI `AIFunction`, so a chat client or a Microsoft Agent Framework agent can call a calibrated classifier as a tool.
 
 ```powershell
-dotnet add package DecisionsDotNet.AI --prerelease
+dotnet add package DecisionsDotNet.AI
 ```
 
 ## A fixed set of questions
@@ -34,7 +34,7 @@ AIAgent agent = new ChatClientAgent(chatClient,
 `AsOpenDecisionsAIFunction` lets the model ask its own yes/no, choice, and score questions about any text:
 
 ```csharp
-var decide = decisionsClient.AsOpenDecisionsAIFunction(model: OpenAIDecisionsClient.DefaultModel);
+var decide = decisionsClient.AsOpenDecisionsAIFunction(model: "typesafe/jev-1.14");
 var response = await chatClient.GetResponseAsync(messages, new ChatOptions { Tools = [decide] });
 ```
 
@@ -56,3 +56,7 @@ Both tools return compact JSON keyed by question ID, rounded to three decimals:
 ```
 
 Refused questions (OpenAI only) appear as `{ "type": "refusal" }`. Invalid questions from the model throw `ArgumentException`, which Microsoft.Extensions.AI reports back to the model so it can correct the call.
+
+## Stability
+
+This package always ships with the same version as `DecisionsDotNet` and follows semantic versioning from 1.0.0. The JSON the tools return to the model is part of that contract. See the [changelog](https://github.com/HillPhelmuth/JevDotNet/blob/main/CHANGELOG.md).

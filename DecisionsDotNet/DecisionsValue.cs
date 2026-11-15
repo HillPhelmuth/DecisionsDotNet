@@ -16,16 +16,22 @@ public sealed class DecisionsValue
         _value = value.Clone();
     }
 
+    /// <summary>Creates a text value. A string converts implicitly, so this is rarely needed.</summary>
     public static DecisionsValue Text(string value) => new(JsonSerializer.SerializeToElement(
         value ?? throw new ArgumentNullException(nameof(value))));
+    /// <summary>Returns the text of a text value.</summary>
+    /// <exception cref="InvalidOperationException">The value is an object or array.</exception>
     public string AsText() => _value.GetString() ?? throw new InvalidOperationException("The value is not a JSON string.");
 
+    /// <summary>Creates a structured value from anything that serializes to a JSON object.</summary>
     public static DecisionsValue FromObject<T>(T value, JsonSerializerOptions? options = null) where T : notnull
         => FromSerialized(value, JsonValueKind.Object, options);
 
+    /// <summary>Creates a structured value from anything that serializes to a JSON array.</summary>
     public static DecisionsValue FromArray<T>(T value, JsonSerializerOptions? options = null) where T : notnull
         => FromSerialized(value, JsonValueKind.Array, options);
 
+    /// <summary>Wraps a JSON string, object, or array.</summary>
     public static DecisionsValue FromJson(JsonElement value) => new(value);
 
     /// <summary>Creates an inline PNG, JPEG, or WebP image. The caller prepares the image dimensions and orientation.</summary>
@@ -52,8 +58,10 @@ public sealed class DecisionsValue
         return FromArray(parts);
     }
 
+    /// <summary>Converts a string to a text value.</summary>
     public static implicit operator DecisionsValue(string value) => Text(value);
 
+    /// <summary>Returns a copy of the underlying JSON.</summary>
     public JsonElement ToJsonElement() => _value.Clone();
 
     private static DecisionsValue FromSerialized<T>(T value, JsonValueKind expected, JsonSerializerOptions? options)

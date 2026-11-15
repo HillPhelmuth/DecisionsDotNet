@@ -32,8 +32,7 @@ jobs:
         run: dotnet restore JevDotNet.slnx
 
       - name: Build
-        # Disable the library's automatic packaging to its local Windows path.
-        run: dotnet build JevDotNet.slnx --configuration Release --no-restore -p:GeneratePackageOnBuild=false -p:ContinuousIntegrationBuild=true
+        run: dotnet build JevDotNet.slnx --configuration Release --no-restore
 
       - name: Run tests
         run: dotnet test --project JevDotNet.Tests/JevDotNet.Tests.csproj --configuration Release --no-build
