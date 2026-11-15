@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
 
 namespace ExtractionsDotNet;
@@ -11,6 +12,49 @@ public sealed record ExtractionResponse(
     public string? Provider { get; init; }
     public string? StateText { get; init; }
     public bool? Truncated { get; init; }
+
+    /// <summary>Reads a field's answer as its concrete type, such as <c>ExtractionAnswer&lt;double?&gt;</c> for a number field.</summary>
+    public TAnswer GetAnswer<TAnswer>(string field) where TAnswer : ExtractionAnswer
+    {
+        if (!Answers.TryGetValue(field, out var answer))
+            throw new KeyNotFoundException($"No answer was returned for field '{field}'.");
+        return answer as TAnswer ?? throw new InvalidOperationException(
+            $"Answer '{field}' is {answer.GetType().Name}, not {typeof(TAnswer).Name}.");
+    }
+
+    /// <summary>Reads a field's answer, or returns false when it is absent or of another type.</summary>
+    public bool TryGetAnswer<TAnswer>(string field, [NotNullWhen(true)] out TAnswer? answer) where TAnswer : ExtractionAnswer
+    {
+        answer = Answers.TryGetValue(field, out var value) ? value as TAnswer : null;
+        return answer is not null;
+    }
+
+    /// <summary>Reads a text field's answer.</summary>
+    public ExtractionAnswer<string?> GetText(string field) => GetAnswer<ExtractionAnswer<string?>>(field);
+
+    /// <summary>Reads a number field's answer.</summary>
+    public ExtractionAnswer<double?> GetNumber(string field) => GetAnswer<ExtractionAnswer<double?>>(field);
+
+    /// <summary>Reads a date field's answer.</summary>
+    public ExtractionAnswer<DateOnly?> GetDate(string field) => GetAnswer<ExtractionAnswer<DateOnly?>>(field);
+
+    /// <summary>Reads a time field's answer.</summary>
+    public ExtractionAnswer<TimeOnly?> GetTime(string field) => GetAnswer<ExtractionAnswer<TimeOnly?>>(field);
+
+    /// <summary>Reads a datetime field's answer.</summary>
+    public ExtractionAnswer<ExtractionDateTime?> GetDateTime(string field) => GetAnswer<ExtractionAnswer<ExtractionDateTime?>>(field);
+
+    /// <summary>Reads a duration field's answer, including the unit the model returned.</summary>
+    public ExtractionDurationAnswer GetDuration(string field) => GetAnswer<ExtractionDurationAnswer>(field);
+
+    /// <summary>Reads a list field's answer. <typeparamref name="T"/> is string, double, or DateOnly to match the field's item type.</summary>
+    public ExtractionListAnswer<T> GetList<T>(string field) => GetAnswer<ExtractionListAnswer<T>>(field);
+
+    /// <summary>Reads an estimate field's answer. <typeparamref name="T"/> is double or DateOnly to match the field's bounds.</summary>
+    public ExtractionEstimateAnswer<T> GetEstimate<T>(string field) where T : struct => GetAnswer<ExtractionEstimateAnswer<T>>(field);
+
+    /// <summary>Reads a forecast field's answer. <typeparamref name="T"/> is double or DateOnly to match the field's bounds.</summary>
+    public ExtractionForecastAnswer<T> GetForecast<T>(string field) where T : struct => GetAnswer<ExtractionForecastAnswer<T>>(field);
 }
 
 public sealed record ExtractionUsage
