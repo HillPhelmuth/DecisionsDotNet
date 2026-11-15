@@ -8,7 +8,7 @@
 
   <PropertyGroup>
     <PackageId>ExtractionsDotNet</PackageId>
-    <PackageVersion>$(ExtractionsVersion)</PackageVersion>
+    <Version>$(ExtractionsVersion)</Version>
     <Title>ExtractionsDotNet - OpenRouter Extractions SDK</Title>
     <Description>Typed .NET client for OpenRouter's Extractions API, with model discovery, text, image, and PDF inputs, dependency injection, and bounded HTTP retries.</Description>
     <PackageTags>OpenRouter;AI;extraction;decisions;SDK;dotnet;llm;systemone</PackageTags>

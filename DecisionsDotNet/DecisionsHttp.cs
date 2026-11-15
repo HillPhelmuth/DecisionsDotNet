@@ -1,10 +1,11 @@
 namespace DecisionsDotNet;
 
 /// <summary>Bounded retry settings shared by every provider client.</summary>
-internal sealed record RetryPolicy(int MaxAttempts, TimeSpan InitialDelay, TimeSpan MaxDelay, IReadOnlySet<int> RetryableStatusCodes)
+internal sealed record RetryPolicy(int MaxAttempts, TimeSpan InitialDelay, TimeSpan MaxDelay, IReadOnlySet<int> RetryableStatusCodes,
+    TimeProvider Clock)
 {
     internal static RetryPolicy From(DecisionsClientOptions options, IReadOnlySet<int> retryableStatusCodes)
-        => new(options.MaxAttempts, options.InitialRetryDelay, options.MaxRetryDelay, retryableStatusCodes);
+        => new(options.MaxAttempts, options.InitialRetryDelay, options.MaxRetryDelay, retryableStatusCodes, options.Clock);
 
     internal void Validate(string paramName)
     {
@@ -36,10 +37,10 @@ internal static class DecisionsHttp
                 policy.InitialDelay.TotalMilliseconds * Math.Pow(2, attempt - 1)));
             var retryAfter = response.Headers.RetryAfter;
             var delay = retryAfter?.Delta ??
-                (retryAfter?.Date is { } date ? date - DateTimeOffset.UtcNow : backoff);
+                (retryAfter?.Date is { } date ? date - policy.Clock.GetUtcNow() : backoff);
             if (delay < TimeSpan.Zero) delay = TimeSpan.Zero;
             if (delay > policy.MaxDelay) delay = policy.MaxDelay;
-            await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(delay, policy.Clock, cancellationToken).ConfigureAwait(false);
         }
     }
 }

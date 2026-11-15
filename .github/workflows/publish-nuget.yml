@@ -1,15 +1,29 @@
 name: Publish packages to NuGet
 
+# A release is a tag on main:
+#   decisions-v1.2.3    publishes DecisionsDotNet and DecisionsDotNet.AI, which always ship together
+#   extractions-v1.2.3  publishes ExtractionsDotNet
+# The tag's version must equal the version in Directory.Build.props, or the run fails before building.
+# Running the workflow by hand is a rehearsal: it builds, tests, and packs, but never publishes.
+
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - 'decisions-v*'
+      - 'extractions-v*'
   workflow_dispatch:
+    inputs:
+      packages:
+        description: Package set to rehearse (nothing is published)
+        type: choice
+        options: [decisions, extractions]
+        default: decisions
 
 permissions:
   contents: read
 
 concurrency:
-  group: publish-nuget
+  group: publish-nuget-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -22,17 +36,56 @@ jobs:
     env:
       DOTNET_NOLOGO: 'true'
       DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+      IS_RELEASE: ${{ github.event_name == 'push' }}
 
     steps:
       - name: Check out source
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Set up .NET
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
 
+      - name: Work out what to release
+        id: release
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          REHEARSAL_PACKAGES: ${{ inputs.packages }}
+        run: |
+          if [ "$IS_RELEASE" = 'true' ]; then
+            packages="${REF_NAME%%-v*}"
+            tag_version="${REF_NAME#*-v}"
+          else
+            packages="$REHEARSAL_PACKAGES"
+          fi
+
+          case "$packages" in
+            decisions)   project=DecisionsDotNet;   ids='DecisionsDotNet DecisionsDotNet.AI' ;;
+            extractions) project=ExtractionsDotNet; ids='ExtractionsDotNet' ;;
+            *) echo "::error::Unknown package set '$packages'."; exit 1 ;;
+          esac
+          version="$(dotnet msbuild "$project/$project.csproj" -getProperty:Version)"
+
+          if [ "$IS_RELEASE" = 'true' ]; then
+            if [ "$tag_version" != "$version" ]; then
+              echo "::error::Tag $REF_NAME asks for $tag_version, but Directory.Build.props says $version. Fix whichever is wrong and tag again."
+              exit 1
+            fi
+            if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+              echo "::error::Tag $REF_NAME is not on main. Releases are cut from main only."
+              exit 1
+            fi
+          fi
+
+          echo "ids=$ids" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Releasing $ids at $version (publish: $IS_RELEASE)" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Check NuGet configuration
+        if: env.IS_RELEASE == 'true'
         env:
           NUGET_USER: ${{ secrets.NUGET_USER }}
         run: |
@@ -50,22 +103,36 @@ jobs:
       - name: Run tests
         run: dotnet test --project JevDotNet.Tests/JevDotNet.Tests.csproj --configuration Release --no-build
 
-      - name: Pack DecisionsDotNet
-        run: dotnet pack DecisionsDotNet/DecisionsDotNet.csproj --configuration Release --no-build --output ./artifacts/nuget
-      - name: Pack DecisionsDotNet.AI
-        run: dotnet pack DecisionsDotNet.AI/DecisionsDotNet.AI.csproj --configuration Release --no-build --output ./artifacts/nuget
-      - name: Pack ExtractionsDotNet
-        run: dotnet pack ExtractionsDotNet/ExtractionsDotNet.csproj --configuration Release --no-build --output ./artifacts/nuget
-    # - name: Publish packages and symbols to nuget.org
-    #    env:
-    #      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
-    #    run: dotnet nuget push "./artifacts/nuget/*.nupkg" --source https://api.nuget.org/v3/index.json --api-key "$NUGET_API_KEY" --skip-duplicate
-      
+      - name: Pack and consume the packages
+        run: ./eng/verify-packages.sh --no-build
+
+      - name: Select the packages for this release
+        env:
+          IDS: ${{ steps.release.outputs.ids }}
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          mkdir -p artifacts/publish
+          for id in $IDS; do
+            cp "artifacts/nuget/$id.$VERSION.nupkg" "artifacts/nuget/$id.$VERSION.snupkg" artifacts/publish/
+          done
+          ls -l artifacts/publish
+
+      - name: Keep the packages with the run
+        uses: actions/upload-artifact@v7
+        with:
+          name: nuget-packages
+          path: artifacts/publish
+          if-no-files-found: error
+
       - name: NuGet login (OIDC)
+        if: env.IS_RELEASE == 'true'
         uses: NuGet/login@v1
         id: login
         with:
-         user: ${{ secrets.NUGET_USER }}
+          user: ${{ secrets.NUGET_USER }}
 
       - name: Publish packages and symbols to nuget.org
-        run: dotnet nuget push "./artifacts/nuget/*.nupkg" --source https://api.nuget.org/v3/index.json --api-key ${{ steps.login.outputs.NUGET_API_KEY }} --skip-duplicate
+        if: env.IS_RELEASE == 'true'
+        env:
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+        run: dotnet nuget push "./artifacts/publish/*.nupkg" --source https://api.nuget.org/v3/index.json --api-key "$NUGET_API_KEY" --skip-duplicate

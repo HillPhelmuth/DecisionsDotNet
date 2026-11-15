@@ -26,6 +26,9 @@ public sealed class OpenRouterExtractionsClientOptions
 
     /// <summary>The longest delay between attempts, including delays requested by a Retry-After header.</summary>
     public TimeSpan MaxRetryDelay { get; init; } = TimeSpan.FromSeconds(30);
+
+    /// <summary>The clock behind retry delays. Tests replace it to observe delays without waiting.</summary>
+    internal TimeProvider Clock { get; init; } = TimeProvider.System;
 }
 
 /// <summary>Client for OpenRouter's alpha Extractions API. Retries HTTP 429, 502, 503, and 529 with bounded backoff.</summary>
@@ -197,10 +200,10 @@ public sealed class OpenRouterExtractionsClient : IExtractionsClient, IDisposabl
                 options.InitialRetryDelay.TotalMilliseconds * Math.Pow(2, attempt - 1)));
             var retryAfter = response.Headers.RetryAfter;
             var delay = retryAfter?.Delta ??
-                (retryAfter?.Date is { } date ? date - DateTimeOffset.UtcNow : backoff);
+                (retryAfter?.Date is { } date ? date - options.Clock.GetUtcNow() : backoff);
             if (delay < TimeSpan.Zero) delay = TimeSpan.Zero;
             if (delay > options.MaxRetryDelay) delay = options.MaxRetryDelay;
-            await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(delay, options.Clock, cancellationToken).ConfigureAwait(false);
         }
     }
 }

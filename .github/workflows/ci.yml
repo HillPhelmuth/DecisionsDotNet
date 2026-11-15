@@ -34,5 +34,11 @@ jobs:
       - name: Build
         run: dotnet build JevDotNet.slnx --configuration Release --no-restore
 
-      - name: Run tests
+      - name: Run SDK tests
         run: dotnet test --project JevDotNet.Tests/JevDotNet.Tests.csproj --configuration Release --no-build
+
+      - name: Run demo tests
+        run: dotnet test --project JevDotNet.Demo.Tests/JevDotNet.Demo.Tests.csproj --configuration Release --no-build
+
+      - name: Pack and consume the packages
+        run: ./eng/verify-packages.sh --no-build

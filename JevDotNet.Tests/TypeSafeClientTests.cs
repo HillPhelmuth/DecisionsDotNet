@@ -2,7 +2,7 @@ using System.Net;
 using System.Text.Json;
 using DecisionsDotNet;
 
-public sealed class JevClientTests
+public sealed class TypeSafeClientTests
 {
     [Fact]
     public async Task EvaluateAsyncSerializesQuestionsAndReadsTypedAnswers()

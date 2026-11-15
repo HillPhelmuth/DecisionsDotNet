@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Consumes the three packages the way a customer would: from .nupkg files, not project references.
+    Run it through eng/verify-packages.sh, which packs them into artifacts/nuget first.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <!-- A private package folder, so a stale copy of the same version in the machine-wide cache is never used. -->
+    <RestorePackagesPath>$(MSBuildProjectDirectory)/obj/packages</RestorePackagesPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Versions come from Directory.Build.props at the repository root. -->
+    <PackageReference Include="DecisionsDotNet" Version="[$(DecisionsVersion)]" />
+    <PackageReference Include="DecisionsDotNet.AI" Version="[$(DecisionsVersion)]" />
+    <PackageReference Include="ExtractionsDotNet" Version="[$(ExtractionsVersion)]" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
+  </ItemGroup>
+</Project>

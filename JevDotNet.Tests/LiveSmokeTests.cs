@@ -1,0 +1,80 @@
+using DecisionsDotNet;
+using ExtractionsDotNet;
+
+/// <summary>
+/// One real request per provider. These spend a fraction of a cent each, so they are skipped unless
+/// <c>LIVE_TESTS=1</c> is set along with the provider's usual API key variable.
+/// </summary>
+[Trait("Category", "Live")]
+public sealed class LiveSmokeTests
+{
+    private static CancellationToken TestCancellation => TestContext.Current.CancellationToken;
+
+    [Fact]
+    public async Task OpenRouterDecisionsAnswersAYesNoQuestionAsync()
+    {
+        RequireLive("OPENROUTER_API_KEY");
+        using var client = OpenRouterDecisionsClient.FromEnvironment();
+        var models = await client.ListModelsAsync(TestCancellation);
+        Assert.NotEmpty(models);
+
+        var response = await client.EvaluateAsync(Ticket().Build(models[0].Id), TestCancellation);
+
+        AssertUrgent(response);
+    }
+
+    [Fact]
+    public async Task TypeSafeDecisionsAnswersAYesNoQuestionAsync()
+    {
+        RequireLive("TYPESAFE_API_KEY");
+        using var client = TypeSafeDecisionsClient.FromEnvironment();
+
+        var response = await client.EvaluateAsync(Ticket().Build(TypeSafeDecisionsClient.DefaultModel), TestCancellation);
+
+        AssertUrgent(response);
+    }
+
+    [Fact]
+    public async Task OpenAIDecisionsAnswersAYesNoQuestionAsync()
+    {
+        RequireLive("OPENAI_API_KEY");
+        using var client = OpenAIDecisionsClient.FromEnvironment();
+
+        var response = await client.EvaluateAsync(Ticket().Build(OpenAIDecisionsClient.DefaultModel), TestCancellation);
+
+        AssertUrgent(response);
+    }
+
+    [Fact]
+    public async Task OpenRouterExtractionsReadsATextFieldAsync()
+    {
+        RequireLive("OPENROUTER_API_KEY");
+        using var client = OpenRouterExtractionsClient.FromEnvironment();
+        var models = await client.ListModelsAsync(TestCancellation);
+        var model = Assert.IsType<ExtractionModel>(models.FirstOrDefault(m => m.InputModalities.Contains("text")));
+
+        var response = await client.ExtractAsync(new ExtractionRequest(model.Id,
+            new Dictionary<string, ExtractionField> { ["invoice_number"] = new TextField() })
+        {
+            State = "Invoice INV-20418 from Northwind Traders, due 30 November 2026, total 1,250.00 USD."
+        }, TestCancellation);
+
+        Assert.Contains("20418", response.GetText("invoice_number").Value);
+    }
+
+    private static DecisionsRequestBuilder Ticket() => DecisionsRequest
+        .Create("Our checkout page has been down for an hour and customers cannot pay.")
+        .Noul("urgent", "Does this need attention right now?");
+
+    private static void AssertUrgent(DecisionsResponse response)
+    {
+        Assert.False(string.IsNullOrWhiteSpace(response.Model));
+        Assert.InRange(response.GetAnswer<NoulAnswer>("urgent").Noul, 0.5, 1.0);
+    }
+
+    private static void RequireLive(string keyVariable)
+    {
+        Assert.SkipUnless(Environment.GetEnvironmentVariable("LIVE_TESTS") == "1", "Set LIVE_TESTS=1 to run live smoke tests.");
+        Assert.SkipWhen(string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(keyVariable)), $"Set {keyVariable} to run this test.");
+    }
+}

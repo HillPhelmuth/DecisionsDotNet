@@ -5,32 +5,54 @@ using Microsoft.Extensions.DependencyInjection;
 
 public sealed class DependencyInjectionChecks
 {
-    [Fact]
-    public async Task RegistrationsConfigureProvidersAsync()
-    {
-        foreach (var useConfiguration in new[] { false, true })
-        {
-            await CheckProviderAsync(useConfiguration, openRouter: false);
-            await CheckProviderAsync(useConfiguration, openRouter: false,
-                options: new TypeSafeDecisionsClientOptions { BaseUri = new Uri("http://localhost:1234/") });
-            await CheckProviderAsync(useConfiguration, openRouter: true);
-        }
+    private static readonly TypeSafeDecisionsClientOptions Localhost = new() { BaseUri = new Uri("http://localhost:1234/") };
 
-        await CheckProviderAsync(useConfiguration: false, openRouter: false,
-            options: new TypeSafeDecisionsClientOptions { BaseUri = new Uri("http://localhost:1234/") }, localRegistration: true);
-        await CheckProviderAsync(useConfiguration: false, openRouter: false,
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task TypeSafeRegistrationUsesTheDefaultEndpointAsync(bool useConfiguration)
+        => await CheckProviderAsync(useConfiguration, openRouter: false);
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task TypeSafeRegistrationHonorsACustomBaseUriAsync(bool useConfiguration)
+        => await CheckProviderAsync(useConfiguration, openRouter: false, options: Localhost);
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task OpenRouterRegistrationUsesItsEndpointAsync(bool useConfiguration)
+        => await CheckProviderAsync(useConfiguration, openRouter: true);
+
+    [Fact]
+    public async Task LocalRegistrationUsesAPlaceholderKeyAsync()
+        => await CheckProviderAsync(useConfiguration: false, openRouter: false, options: Localhost, localRegistration: true);
+
+    [Fact]
+    public async Task LocalRegistrationHonorsASuppliedKeyAsync()
+        => await CheckProviderAsync(useConfiguration: false, openRouter: false,
             options: new TypeSafeDecisionsClientOptions { BaseUri = new Uri("http://jev:1234/") }, localRegistration: true,
             localApiKey: "custom-local-key");
-        ExpectArgument(() => new ServiceCollection().AddLocalTypeSafeDecisionsClient(null!), "Local null base URI");
-        ExpectArgument(() => new ServiceCollection().AddLocalTypeSafeDecisionsClient(new Uri("http://localhost:1234/"), " "),
-            "Local empty key");
 
-        ExpectArgument(() => new ServiceCollection().AddTypeSafeDecisionsClient(" "), "Direct empty key");
-        ExpectArgument(() => new ServiceCollection().AddOpenRouterDecisionsClient(" "), "OpenRouter empty key");
-        ExpectMissingKey(() => new ServiceCollection().AddTypeSafeDecisionsClient(new ConfigurationBuilder().Build()),
-            "TypeSafe:ApiKey");
-        ExpectMissingKey(() => new ServiceCollection().AddOpenRouterDecisionsClient(new ConfigurationBuilder().Build()),
-            "OpenRouter:ApiKey");
+    [Fact]
+    public void RegistrationsRejectInvalidArguments()
+    {
+        Assert.ThrowsAny<ArgumentException>(() => new ServiceCollection().AddLocalTypeSafeDecisionsClient(null!));
+        Assert.ThrowsAny<ArgumentException>(() =>
+            new ServiceCollection().AddLocalTypeSafeDecisionsClient(new Uri("http://localhost:1234/"), " "));
+        Assert.ThrowsAny<ArgumentException>(() => new ServiceCollection().AddTypeSafeDecisionsClient(" "));
+        Assert.ThrowsAny<ArgumentException>(() => new ServiceCollection().AddOpenRouterDecisionsClient(" "));
+    }
+
+    [Fact]
+    public void RegistrationsNameTheMissingConfigurationKey()
+    {
+        var empty = new ConfigurationBuilder().Build();
+        var typeSafe = Assert.Throws<InvalidOperationException>(() => new ServiceCollection().AddTypeSafeDecisionsClient(empty));
+        Assert.Contains("TypeSafe:ApiKey", typeSafe.Message);
+        var openRouter = Assert.Throws<InvalidOperationException>(() => new ServiceCollection().AddOpenRouterDecisionsClient(empty));
+        Assert.Contains("OpenRouter:ApiKey", openRouter.Message);
     }
 
     private static async Task CheckProviderAsync(bool useConfiguration, bool openRouter, TypeSafeDecisionsClientOptions? options = null,
@@ -60,6 +82,7 @@ public sealed class DependencyInjectionChecks
             : useConfiguration
                 ? services.AddTypeSafeDecisionsClient(configuration, options)
                 : services.AddTypeSafeDecisionsClient(expectedKey, options);
+        // The key is read at registration, so a later configuration change must not leak into requests.
         if (useConfiguration)
             configuration[openRouter ? "OpenRouter:ApiKey" : "TypeSafe:ApiKey"] = "changed-after-registration";
 
@@ -94,27 +117,8 @@ public sealed class DependencyInjectionChecks
                 ["right"] = "Closer", ["down"] = "Farther"
             })
         }, model);
-        var response = await client.EvaluateAsync(request);
+        var response = await client.EvaluateAsync(request, TestContext.Current.CancellationToken);
         Assert.True(response.GetAnswer<ChoiceAnswer>("move").Choice == "right", "DI typed answer");
         Assert.True(response.Usage.InputTokens == 12 && calls == 1, "DI response and single call");
-    }
-
-    private static void ExpectArgument(Action action, string name)
-    {
-        try { action(); throw new Exception($"Expected argument error: {name}"); }
-        catch (ArgumentException) { }
-    }
-
-    private static void ExpectMissingKey(Action action, string setting)
-    {
-        try { action(); throw new Exception($"Expected missing key error: {setting}"); }
-        catch (InvalidOperationException error) when (error.Message.Contains(setting)) { }
-    }
-
-
-    private sealed class StubHandler(Func<HttpRequestMessage, HttpResponseMessage> respond) : HttpMessageHandler
-    {
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-            => Task.FromResult(respond(request));
     }
 }

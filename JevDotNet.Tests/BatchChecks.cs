@@ -6,95 +6,105 @@ public sealed class BatchChecks
 {
     private sealed record Message(string Id, string Text);
 
-    [Fact]
-    public async Task BatchesPreserveItemMappingAndHandleFailuresAsync()
-    {
-        var messages = Enumerable.Range(1, 5).Select(i => new Message($"m{i}", $"Text {i}")).ToArray();
-        var options = new DecisionsBatchOptions<Message>
-        {
-            ItemId = message => message.Id,
-            State = batch => DecisionsValue.FromObject(new { messages = batch }),
-            Questions = message => new Dictionary<string, DecisionsQuestion>
-            {
-                ["refund"] = new NoulQuestion($"Does {message.Id} want a refund?"),
-                ["angry"] = new NoulQuestion($"Is {message.Id} angry?")
-            },
-            Model = "typesafe/jev-1.14",
-            ItemsPerRequest = 2
-        };
+    private static readonly Message[] Messages =
+        Enumerable.Range(1, 5).Select(i => new Message($"m{i}", $"Text {i}")).ToArray();
 
-        var bodies = new List<JsonElement>();
-        var client = new FakeClient(request =>
+    private static DecisionsBatchOptions<Message> Options(bool continueOnError = true) => new()
+    {
+        ItemId = message => message.Id,
+        State = batch => DecisionsValue.FromObject(new { messages = batch }),
+        Questions = message => new Dictionary<string, DecisionsQuestion>
         {
-            bodies.Add(JsonSerializer.SerializeToElement(request));
-            if (request.Questions.ContainsKey("m3_refund")) throw new DecisionsApiException(HttpStatusCode.BadRequest, "too big", "OpenRouter");
-            return Answer(request.Questions.Keys);
-        });
+            ["refund"] = new NoulQuestion($"Does {message.Id} want a refund?"),
+            ["angry"] = new NoulQuestion($"Is {message.Id} angry?")
+        },
+        Model = "typesafe/jev-1.14",
+        ItemsPerRequest = 2,
+        ContinueOnError = continueOnError
+    };
+
+    [Fact]
+    public async Task BatchesPreserveItemMappingAndReportFailuresAsync()
+    {
+        var bodies = new List<JsonElement>();
+        var client = FailingOnThirdMessage(bodies);
 
         var results = new List<DecisionsBatchResult<Message>>();
-        await foreach (var result in client.EvaluateBatchesAsync(messages, options))
+        await foreach (var result in client.EvaluateBatchesAsync(Messages, Options(), TestCancellation))
             results.Add(result);
 
-        Assert.True(results.Select(result => result.Items.Count).SequenceEqual(new[] { 2, 2, 1 }), "Batch sizes");
-        Assert.True(results.Select(result => result.Number).SequenceEqual(new[] { 1, 2, 3 }), "Batch numbers");
-        Assert.True(bodies[0].GetProperty("questions").EnumerateObject().Select(p => p.Name)
-            .SequenceEqual(new[] { "m1_refund", "m1_angry", "m2_refund", "m2_angry" }), "Prefixed question IDs");
+        Assert.Equal([2, 2, 1], results.Select(result => result.Items.Count));
+        Assert.Equal([1, 2, 3], results.Select(result => result.Number));
+        Assert.Equal(["m1_refund", "m1_angry", "m2_refund", "m2_angry"],
+            bodies[0].GetProperty("questions").EnumerateObject().Select(p => p.Name));
         Assert.True(bodies[0].GetProperty("state").GetProperty("messages").GetArrayLength() == 2 &&
             bodies[0].GetProperty("model").GetString() == "typesafe/jev-1.14", "Batch state and model");
-        Assert.True(results[0].Succeeded && results[0].GetAnswer<NoulAnswer>(messages[1], "angry").Noul == 0.25, "Per-item answer");
+        Assert.True(results[0].Succeeded && results[0].GetAnswer<NoulAnswer>(Messages[1], "angry").Noul == 0.25, "Per-item answer");
         Assert.True(!results[1].Succeeded && results[1].Error is DecisionsApiException, "Failed batch is reported");
         Assert.True(results[2].Succeeded, "Later batches continue after a failure");
-        try { results[1].GetAnswer<NoulAnswer>(messages[2], "refund"); throw new Exception("Expected failure"); }
-        catch (InvalidOperationException error) when (error.InnerException is DecisionsApiException) { }
+        var error = Assert.Throws<InvalidOperationException>(() => results[1].GetAnswer<NoulAnswer>(Messages[2], "refund"));
+        Assert.IsType<DecisionsApiException>(error.InnerException);
+    }
 
-        try
+    [Fact]
+    public async Task FailurePropagatesWhenContinueOnErrorIsOffAsync()
+        => await Assert.ThrowsAsync<DecisionsApiException>(async () =>
         {
-            await foreach (var _ in client.EvaluateBatchesAsync(messages, new DecisionsBatchOptions<Message>
-            {
-                ItemId = options.ItemId, State = options.State, Questions = options.Questions, Model = options.Model,
-                ItemsPerRequest = 2, ContinueOnError = false
-            })) { }
-            throw new Exception("Expected the failure to propagate");
-        }
-        catch (DecisionsApiException) { }
+            await foreach (var _ in FailingOnThirdMessage().EvaluateBatchesAsync(
+                Messages, Options(continueOnError: false), TestCancellation)) { }
+        });
 
-        try
+    [Fact]
+    public async Task DuplicateItemIdsAreRejectedAsync()
+        => await Assert.ThrowsAnyAsync<ArgumentException>(async () =>
         {
-            await foreach (var _ in client.EvaluateBatchesAsync(new[] { messages[0], messages[0] }, options)) { }
-            throw new Exception("Expected duplicate IDs to be rejected");
-        }
-        catch (ArgumentException) { }
+            await foreach (var _ in Answering().EvaluateBatchesAsync(
+                new[] { Messages[0], Messages[0] }, Options(), TestCancellation)) { }
+        });
 
-        using var cancel = new CancellationTokenSource();
+    [Fact]
+    public async Task CancellationStopsFurtherBatchesAsync()
+    {
+        using var cancel = CancellationTokenSource.CreateLinkedTokenSource(TestCancellation);
         var seen = 0;
-        try
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
         {
-            await foreach (var _ in new FakeClient(request => Answer(request.Questions.Keys))
-                .EvaluateBatchesAsync(messages, options, cancel.Token))
+            await foreach (var _ in Answering().EvaluateBatchesAsync(Messages, Options(), cancel.Token))
             {
                 seen++;
                 cancel.Cancel();
             }
-            throw new Exception("Expected cancellation");
-        }
-        catch (OperationCanceledException) { }
-        Assert.True(seen == 1, "Cancellation stops further batches");
-
-        using var cancelled = new CancellationTokenSource();
-        cancelled.Cancel();
-        var enumerated = 0;
-        IEnumerable<Message> Lazy() { enumerated++; yield return messages[0]; }
-        foreach (var source in new[] { Array.Empty<Message>(), Lazy() })
-        {
-            try
-            {
-                await foreach (var _ in client.EvaluateBatchesAsync(source, options, cancelled.Token)) { }
-                throw new Exception("Expected pre-cancelled batching to throw");
-            }
-            catch (OperationCanceledException) { }
-        }
-        Assert.True(enumerated == 0, "Pre-cancelled batching does not enumerate items");
+        });
+        Assert.Equal(1, seen);
     }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task PreCancelledBatchingThrowsWithoutEnumeratingItemsAsync(bool lazy)
+    {
+        var enumerated = 0;
+        IEnumerable<Message> Lazy() { enumerated++; yield return Messages[0]; }
+        var source = lazy ? Lazy() : Array.Empty<Message>();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+        {
+            await foreach (var _ in Answering().EvaluateBatchesAsync(source, Options(), new CancellationToken(canceled: true))) { }
+        });
+        Assert.Equal(0, enumerated);
+    }
+
+    private static CancellationToken TestCancellation => TestContext.Current.CancellationToken;
+
+    private static FakeClient Answering() => new(request => Answer(request.Questions.Keys));
+
+    private static FakeClient FailingOnThirdMessage(List<JsonElement>? bodies = null) => new(request =>
+    {
+        bodies?.Add(JsonSerializer.SerializeToElement(request));
+        if (request.Questions.ContainsKey("m3_refund"))
+            throw new DecisionsApiException(HttpStatusCode.BadRequest, "too big", "OpenRouter");
+        return Answer(request.Questions.Keys);
+    });
 
     private static DecisionsResponse Answer(IEnumerable<string> ids) => new()
     {
@@ -102,7 +112,6 @@ public sealed class BatchChecks
         Answers = ids.ToDictionary(id => id, id => (DecisionsAnswer)new NoulAnswer { Noul = id.EndsWith("angry") ? 0.25 : 0.75 }),
         Usage = new DecisionsUsage { InputTokens = 1, OutputTokens = 1 }
     };
-
 
     private sealed class FakeClient(Func<DecisionsRequest, DecisionsResponse> respond) : IDecisionsClient
     {
