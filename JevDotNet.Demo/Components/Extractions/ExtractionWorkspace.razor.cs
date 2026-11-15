@@ -75,7 +75,7 @@ public partial class ExtractionWorkspace : IAsyncDisposable
             Logger.LogWarning(exception, "Extraction demo failed for {Model}.", Demo.Model);
             if (ReferenceEquals(_run, run))
             {
-                _error = exception is ExtractionsApiException { StatusCode: { } status }
+                _error = exception is ExtractionsApiException { StatusCode: var status }
                     ? $"OpenRouter returned HTTP {(int)status}. Try extracting again."
                     : "The extraction could not be completed. Try extracting again.";
             }

@@ -5,8 +5,9 @@
     <Nullable>enable</Nullable>
     <PackageId>ExtractionsDotNet</PackageId>
     <PackageVersion>0.3.0-preview</PackageVersion>
+    <Title>ExtractionsDotNet - OpenRouter Extractions SDK</Title>
     <Authors>Adam Holm</Authors>
-    <Description>Typed .NET client for OpenRouter's Extractions API, with model discovery and text, image, and PDF inputs.</Description>
+    <Description>Typed .NET client for OpenRouter's Extractions API, with model discovery, text, image, and PDF inputs, dependency injection, and bounded HTTP retries.</Description>
     <PackageTags>OpenRouter;AI;extraction;decisions;SDK;dotnet;llm;systemone</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -16,6 +17,7 @@
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.0" />
     <None Update="README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
 </Project>

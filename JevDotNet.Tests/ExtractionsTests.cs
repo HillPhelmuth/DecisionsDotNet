@@ -1,6 +1,8 @@
 using System.Net;
 using System.Text.Json;
 using ExtractionsDotNet;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 public sealed class ExtractionsTests
 {
@@ -72,7 +74,8 @@ public sealed class ExtractionsTests
                 }
                 """);
         }));
-        using var client = new OpenRouterExtractionsClient("test-key", http, new Uri("https://router.example"));
+        using var client = new OpenRouterExtractionsClient("test-key", http,
+            new OpenRouterExtractionsClientOptions { BaseUri = new Uri("https://router.example") });
         var result = await client.ExtractAsync(new ExtractionRequest("cloudflare/clairic",
             new Dictionary<string, ExtractionField>
             {
@@ -280,7 +283,7 @@ public sealed class ExtractionsTests
     }
 
     [Fact]
-    public async Task PreservesProviderErrorWithoutRetrying()
+    public async Task PreservesProviderErrorWithoutRetryingWhenRetriesAreOff()
     {
         const string error = """{"error":{"code":503,"message":"Unavailable"}}""";
         var attempts = 0;
@@ -289,11 +292,115 @@ public sealed class ExtractionsTests
             attempts++;
             return JsonResponse(error, HttpStatusCode.ServiceUnavailable);
         }));
-        using var client = new OpenRouterExtractionsClient("test-key", http);
+        using var client = new OpenRouterExtractionsClient("test-key", http, new OpenRouterExtractionsClientOptions { MaxAttempts = 1 });
         var exception = await Assert.ThrowsAsync<ExtractionsApiException>(() => client.ExtractAsync(TextRequest(), TestCancellation));
         Assert.Equal(HttpStatusCode.ServiceUnavailable, exception.StatusCode);
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, ((HttpRequestException)exception).StatusCode);
         Assert.Equal(error, exception.ResponseBody);
+        Assert.Equal("OpenRouter", exception.Service);
         Assert.Equal(1, attempts);
+    }
+
+    [Theory]
+    [InlineData(429)]
+    [InlineData(502)]
+    [InlineData(503)]
+    [InlineData(529)]
+    public async Task RetriesTransientErrorsWithTheSameBody(int status)
+    {
+        var bodies = new List<string>();
+        using var http = new HttpClient(new StubHandler(message =>
+        {
+            bodies.Add(message.Content!.ReadAsStringAsync(TestCancellation).GetAwaiter().GetResult());
+            if (bodies.Count < 3)
+            {
+                var busy = JsonResponse("busy", (HttpStatusCode)status);
+                busy.Headers.RetryAfter = new System.Net.Http.Headers.RetryConditionHeaderValue(TimeSpan.Zero);
+                return busy;
+            }
+            return JsonResponse(TextAnswer);
+        }));
+        using var client = new OpenRouterExtractionsClient("test-key", http);
+        var result = await client.ExtractAsync(TextRequest(), TestCancellation);
+        Assert.Equal("x", result.GetText("value").Value);
+        Assert.Equal(3, bodies.Count);
+        Assert.Single(bodies.Distinct());
+    }
+
+    [Fact]
+    public async Task StopsAfterMaxAttemptsAndDoesNotRetryClientErrors()
+    {
+        var attempts = 0;
+        using var http = new HttpClient(new StubHandler(_ =>
+        {
+            attempts++;
+            return JsonResponse("busy", HttpStatusCode.TooManyRequests);
+        }));
+        var options = new OpenRouterExtractionsClientOptions
+        {
+            MaxAttempts = 2, InitialRetryDelay = TimeSpan.Zero, MaxRetryDelay = TimeSpan.Zero
+        };
+        using (var client = new OpenRouterExtractionsClient("test-key", http, options))
+            await Assert.ThrowsAsync<ExtractionsApiException>(() => client.ExtractAsync(TextRequest(), TestCancellation));
+        Assert.Equal(2, attempts);
+
+        attempts = 0;
+        using var badRequest = new HttpClient(new StubHandler(_ =>
+        {
+            attempts++;
+            return JsonResponse("bad", HttpStatusCode.BadRequest);
+        }));
+        using (var client = new OpenRouterExtractionsClient("test-key", badRequest, options))
+            await Assert.ThrowsAsync<ExtractionsApiException>(() => client.ExtractAsync(TextRequest(), TestCancellation));
+        Assert.Equal(1, attempts);
+
+        Assert.Throws<ArgumentException>(() => new OpenRouterExtractionsClient("test-key", http,
+            new OpenRouterExtractionsClientOptions { MaxAttempts = 0 }));
+        Assert.Throws<ArgumentException>(() => new OpenRouterExtractionsClient("test-key", http,
+            new OpenRouterExtractionsClientOptions { BaseUri = new Uri("http://router.example") }));
+    }
+
+    [Fact]
+    public async Task TypedAccessorsReadAnswersWithoutCasts()
+    {
+        using var http = new HttpClient(new StubHandler(_ => JsonResponse(TextAnswer)));
+        using var client = new OpenRouterExtractionsClient("test-key", http);
+        IExtractionsClient extractions = client;
+        var result = await extractions.ExtractAsync(TextRequest(), TestCancellation);
+
+        Assert.Equal("x", result.GetText("value").Value);
+        Assert.True(result.TryGetAnswer<ExtractionAnswer<string?>>("value", out var text) && text.Value == "x");
+        Assert.False(result.TryGetAnswer<ExtractionAnswer<double?>>("value", out _));
+        Assert.False(result.TryGetAnswer<ExtractionAnswer<string?>>("missing", out _));
+        Assert.Throws<InvalidOperationException>(() => result.GetNumber("value"));
+        Assert.Throws<KeyNotFoundException>(() => result.GetText("missing"));
+    }
+
+    [Fact]
+    public async Task RegistersUnkeyedAndKeyedClients()
+    {
+        var seen = new List<string>();
+        var handler = new StubHandler(message =>
+        {
+            seen.Add($"{message.RequestUri!.Host} {message.Headers.Authorization!.Parameter}");
+            return JsonResponse(TextAnswer);
+        });
+        var config = new ConfigurationBuilder().AddInMemoryCollection(
+            new Dictionary<string, string?> { ["OpenRouter:ApiKey"] = "config-key" }).Build();
+        var services = new ServiceCollection();
+        services.AddOpenRouterExtractionsClient(config).ConfigurePrimaryHttpMessageHandler(() => handler);
+        services.AddKeyedOpenRouterExtractionsClient("staging", "staging-key",
+                new OpenRouterExtractionsClientOptions { BaseUri = new Uri("https://staging.example") })
+            .ConfigurePrimaryHttpMessageHandler(() => handler);
+
+        using var provider = services.BuildServiceProvider();
+        await provider.GetRequiredService<IExtractionsClient>().ExtractAsync(TextRequest(), TestCancellation);
+        await provider.GetRequiredKeyedService<IExtractionsClient>("staging").ExtractAsync(TextRequest(), TestCancellation);
+        Assert.Equal(["openrouter.ai config-key", "staging.example staging-key"], seen);
+
+        Assert.Throws<InvalidOperationException>(() =>
+            new ServiceCollection().AddOpenRouterExtractionsClient(new ConfigurationBuilder().Build()));
+        Assert.Throws<ArgumentException>(() => new ServiceCollection().AddOpenRouterExtractionsClient(" "));
     }
 
     [Theory]
@@ -366,6 +473,10 @@ public sealed class ExtractionsTests
             throw new InvalidOperationException("Expected cancellation.");
         }
     }
+
+    private const string TextAnswer = """
+        {"model":"cloudflare/clairic","usage":{"input_tokens":1,"output_tokens":0},"answers":{"value":{"type":"text","value":"x"}}}
+        """;
 
     private static ExtractionRequest TextRequest(string model = "cloudflare/clairic") =>
         new(model, new Dictionary<string, ExtractionField> { ["value"] = new TextField() }) { State = "Invoice" };

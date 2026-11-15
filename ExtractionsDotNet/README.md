@@ -38,9 +38,11 @@ var invoice = await client.ExtractAsync(new ExtractionRequest(
     State = "Invoice INV-2291 is due 2026-10-02. Total $1080."
 });
 
-var total = (ExtractionAnswer<double?>)invoice.Answers["total"];
+var total = invoice.GetNumber("total");
 Console.WriteLine($"Total {total.Value}, confidence {total.Confidence}");
 ```
+
+Read answers with the accessor that matches the field: `GetText`, `GetNumber`, `GetDate`, `GetTime`, `GetDateTime`, `GetDuration`, `GetList<T>`, `GetEstimate<T>`, or `GetForecast<T>`. `GetAnswer<TAnswer>` and `TryGetAnswer<TAnswer>` take the concrete answer type when you need it, and `Answers` holds them all by field name.
 
 Scalar answers use `ExtractionAnswer<T>` with nullable values. The type argument is `string?`, `double?`, `DateOnly?`, `TimeOnly?`, or `ExtractionDateTime?` depending on the field. `ExtractionDateTime` preserves the wall-clock time and any offset returned by the model. Duration answers also expose the returned unit. Lists use `ExtractionListAnswer<T>` with the requested item type. Estimates and forecasts use `ExtractionEstimateAnswer<T>` and `ExtractionForecastAnswer<T>` with `double` or `DateOnly` according to the bounds.
 
@@ -73,6 +75,34 @@ var pdfResult = await client.ExtractAsync(new ExtractionRequest("scaledown/extra
 });
 ```
 
-Pass a cancellation token to either async method. `ExtractionsApiException` exposes the HTTP status and response body. You can supply your own `HttpClient` to configure timeouts and retry policies. You retain ownership of that client.
+## Retries, errors, and options
+
+The client retries HTTP 429, 502, 503, and 529 up to three attempts in total, honoring `Retry-After` up to the maximum delay. Change this, or the base URI, with `OpenRouterExtractionsClientOptions`; set `MaxAttempts = 1` to turn retries off.
+
+```csharp
+using var client = new OpenRouterExtractionsClient(apiKey, options: new OpenRouterExtractionsClientOptions
+{
+    MaxAttempts = 5,
+    MaxRetryDelay = TimeSpan.FromSeconds(10)
+});
+```
+
+Other HTTP failures throw `ExtractionsApiException`, an `HttpRequestException` with `StatusCode`, `ResponseBody`, and `Service`. Pass a cancellation token to either async method. You can supply your own `HttpClient` to configure timeouts and handlers. You retain ownership of that client.
+
+## Dependency injection
+
+Register the client, then inject `IExtractionsClient`. Registration accepts a key string or `IConfiguration`, which reads `OpenRouter:ApiKey`, and returns `IHttpClientBuilder` for HTTP pipeline configuration.
+
+```csharp
+builder.Services.AddOpenRouterExtractionsClient(builder.Configuration);
+
+public sealed class InvoiceReader(IExtractionsClient extractions)
+{
+    public Task<ExtractionResponse> ReadAsync(ExtractionRequest request, CancellationToken cancellationToken = default)
+        => extractions.ExtractAsync(request, cancellationToken);
+}
+```
+
+Use `AddKeyedOpenRouterExtractionsClient(key, ...)` to register differently configured clients side by side.
 
 [OpenRouter Extractions guide](https://openrouter.ai/docs/guides/community/extractions) · [REST reference](https://openrouter.ai/docs/api/api-reference/alphaextractions/submit-an-extractions-request)

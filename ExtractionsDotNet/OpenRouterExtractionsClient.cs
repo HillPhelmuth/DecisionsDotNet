@@ -1,41 +1,64 @@
 using System.Net;
 using System.Net.Http.Headers;
-using System.Net.Http.Json;
+using System.Text;
+using System.Text.Json;
 
 namespace ExtractionsDotNet;
 
-/// <summary>Client for OpenRouter's alpha Extractions API.</summary>
-public sealed class OpenRouterExtractionsClient : IDisposable
+/// <summary>Extracts typed fields from text, images, and documents through a configured provider.</summary>
+public interface IExtractionsClient
+{
+    Task<ExtractionResponse> ExtractAsync(ExtractionRequest request, CancellationToken cancellationToken = default);
+}
+
+public sealed class OpenRouterExtractionsClientOptions
+{
+    /// <summary>Absolute HTTPS origin serving OpenRouter's API routes.</summary>
+    public Uri BaseUri { get; init; } = new("https://openrouter.ai/");
+
+    /// <summary>Total attempts per request, including the first. Must be at least 1; set 1 to disable retries.</summary>
+    public int MaxAttempts { get; init; } = 3;
+
+    /// <summary>The delay before the first retry. Later retries double it, up to <see cref="MaxRetryDelay"/>.</summary>
+    public TimeSpan InitialRetryDelay { get; init; } = TimeSpan.FromSeconds(1);
+
+    /// <summary>The longest delay between attempts, including delays requested by a Retry-After header.</summary>
+    public TimeSpan MaxRetryDelay { get; init; } = TimeSpan.FromSeconds(30);
+}
+
+/// <summary>Client for OpenRouter's alpha Extractions API. Retries HTTP 429, 502, 503, and 529 with bounded backoff.</summary>
+public sealed class OpenRouterExtractionsClient : IExtractionsClient, IDisposable
 {
     private const string ExtractionsPath = "/api/alpha/extractions";
     private const string ModelsPath = "/api/v1/models?endpoints=/api/alpha/extractions";
-    private static readonly Uri DefaultBaseUri = new("https://openrouter.ai/");
+    private static readonly HashSet<int> RetryableStatusCodes = [429, 502, 503, 529];
 
     private readonly AuthenticationHeaderValue _authorization;
     private readonly HttpClient _httpClient;
-    private readonly Uri _baseUri;
+    private readonly OpenRouterExtractionsClientOptions _options;
     private readonly bool _ownsHttpClient;
     private bool _disposed;
 
     /// <param name="apiKey">An OpenRouter API key.</param>
     /// <param name="httpClient">An optional caller-owned client.</param>
-    /// <param name="baseUri">The HTTPS origin serving OpenRouter's API routes.</param>
-    public OpenRouterExtractionsClient(string apiKey, HttpClient? httpClient = null, Uri? baseUri = null)
+    /// <param name="options">The base URI and retry settings. Defaults apply when omitted.</param>
+    public OpenRouterExtractionsClient(string apiKey, HttpClient? httpClient = null, OpenRouterExtractionsClientOptions? options = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(apiKey);
         _authorization = new AuthenticationHeaderValue("Bearer", apiKey);
-        _baseUri = ValidateBaseUri(baseUri);
+        _options = Validate(options ?? new OpenRouterExtractionsClientOptions());
         _httpClient = httpClient ?? new HttpClient();
         _ownsHttpClient = httpClient is null;
     }
 
-    public static OpenRouterExtractionsClient FromEnvironment(HttpClient? httpClient = null, Uri? baseUri = null)
+    public static OpenRouterExtractionsClient FromEnvironment(
+        HttpClient? httpClient = null, OpenRouterExtractionsClientOptions? options = null)
     {
         var key = Environment.GetEnvironmentVariable("OPENROUTER_API_KEY");
         if (string.IsNullOrWhiteSpace(key))
             throw new InvalidOperationException("OPENROUTER_API_KEY is not set.");
 
-        return new OpenRouterExtractionsClient(key, httpClient, baseUri);
+        return new OpenRouterExtractionsClient(key, httpClient, options);
     }
 
     public async Task<ExtractionResponse> ExtractAsync(
@@ -72,17 +95,22 @@ public sealed class OpenRouterExtractionsClient : IDisposable
             state = request.Assets.Keys.Single();
         }
 
-        using var message = new HttpRequestMessage(HttpMethod.Post, new Uri(_baseUri, ExtractionsPath));
-        message.Headers.Authorization = _authorization;
-        message.Content = JsonContent.Create(request with { State = state, Fields = fields }, options: ExtractionJson.Options);
-        var content = await SendAsync(_httpClient, message, cancellationToken).ConfigureAwait(false);
+        // Serialize once so every attempt sends the same body.
+        var body = JsonSerializer.Serialize(request with { State = state, Fields = fields }, ExtractionJson.Options);
+        var content = await SendAsync(_httpClient, () =>
+        {
+            var message = new HttpRequestMessage(HttpMethod.Post, new Uri(_options.BaseUri, ExtractionsPath));
+            message.Headers.Authorization = _authorization;
+            message.Content = new StringContent(body, Encoding.UTF8, "application/json");
+            return message;
+        }, _options, cancellationToken).ConfigureAwait(false);
         return ExtractionJson.ReadResponse(content, fields);
     }
 
     public Task<IReadOnlyList<ExtractionModel>> ListModelsAsync(CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return ListModelsAsync(_httpClient, _baseUri, cancellationToken);
+        return ListModelsAsync(_httpClient, _options, cancellationToken);
     }
 
     /// <summary>Lists models serving the Extractions route. The SDK adds no authorization header.</summary>
@@ -90,9 +118,18 @@ public sealed class OpenRouterExtractionsClient : IDisposable
         HttpClient httpClient, Uri? baseUri = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(httpClient);
+        var options = Validate(baseUri is null
+            ? new OpenRouterExtractionsClientOptions() : new OpenRouterExtractionsClientOptions { BaseUri = baseUri }, nameof(baseUri));
+        return await ListModelsAsync(httpClient, options, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async Task<IReadOnlyList<ExtractionModel>> ListModelsAsync(
+        HttpClient httpClient, OpenRouterExtractionsClientOptions options, CancellationToken cancellationToken)
+    {
         cancellationToken.ThrowIfCancellationRequested();
-        using var message = new HttpRequestMessage(HttpMethod.Get, new Uri(ValidateBaseUri(baseUri), ModelsPath));
-        var content = await SendAsync(httpClient, message, cancellationToken).ConfigureAwait(false);
+        var content = await SendAsync(httpClient,
+            () => new HttpRequestMessage(HttpMethod.Get, new Uri(options.BaseUri, ModelsPath)),
+            options, cancellationToken).ConfigureAwait(false);
         return ExtractionJson.ReadModels(content);
     }
 
@@ -103,13 +140,15 @@ public sealed class OpenRouterExtractionsClient : IDisposable
             _httpClient.Dispose();
     }
 
-    private static Uri ValidateBaseUri(Uri? baseUri)
+    private static OpenRouterExtractionsClientOptions Validate(
+        OpenRouterExtractionsClientOptions options, string paramName = "options")
     {
-        baseUri ??= DefaultBaseUri;
-        if (!baseUri.IsAbsoluteUri || baseUri.Scheme != Uri.UriSchemeHttps)
-            throw new ArgumentException("The base URI must be an absolute HTTPS URI.", nameof(baseUri));
+        if (options.BaseUri is null || !options.BaseUri.IsAbsoluteUri || options.BaseUri.Scheme != Uri.UriSchemeHttps)
+            throw new ArgumentException("The base URI must be an absolute HTTPS URI.", paramName);
+        if (options.MaxAttempts < 1 || options.InitialRetryDelay < TimeSpan.Zero || options.MaxRetryDelay < options.InitialRetryDelay)
+            throw new ArgumentException("Invalid retry settings.", paramName);
 
-        return baseUri;
+        return options;
     }
 
     private static void ValidateFields(IReadOnlyDictionary<string, ExtractionField> fields)
@@ -127,21 +166,52 @@ public sealed class OpenRouterExtractionsClient : IDisposable
         }
     }
 
-    private static async Task<string> SendAsync(
-        HttpClient client, HttpRequestMessage message, CancellationToken cancellationToken)
+    /// <summary>Sends a request built fresh for each attempt and returns the successful response body.</summary>
+    private static async Task<string> SendAsync(HttpClient client, Func<HttpRequestMessage> createMessage,
+        OpenRouterExtractionsClientOptions options, CancellationToken cancellationToken)
     {
-        using var response = await client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
-            .ConfigureAwait(false);
-        var content = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-        if (!response.IsSuccessStatusCode)
-            throw new ExtractionsApiException(response.StatusCode, content);
+        for (var attempt = 1; ; attempt++)
+        {
+            using var message = createMessage();
+            using var response = await client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
+                .ConfigureAwait(false);
+            var content = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            if (response.IsSuccessStatusCode)
+                return content;
 
-        return content;
+            if (attempt >= options.MaxAttempts || !RetryableStatusCodes.Contains((int)response.StatusCode))
+                throw new ExtractionsApiException(response.StatusCode, content);
+
+            var backoff = TimeSpan.FromMilliseconds(Math.Min(
+                options.MaxRetryDelay.TotalMilliseconds,
+                options.InitialRetryDelay.TotalMilliseconds * Math.Pow(2, attempt - 1)));
+            var retryAfter = response.Headers.RetryAfter;
+            var delay = retryAfter?.Delta ??
+                (retryAfter?.Date is { } date ? date - DateTimeOffset.UtcNow : backoff);
+            if (delay < TimeSpan.Zero) delay = TimeSpan.Zero;
+            if (delay > options.MaxRetryDelay) delay = options.MaxRetryDelay;
+            await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
+        }
     }
 }
 
-public sealed class ExtractionsApiException(HttpStatusCode statusCode, string responseBody)
-    : HttpRequestException($"OpenRouter Extractions returned HTTP {(int)statusCode} ({statusCode}).", null, statusCode)
+/// <summary>The Extractions provider answered with an HTTP error that was not retried, or that outlasted its retries.</summary>
+public sealed class ExtractionsApiException : HttpRequestException
 {
-    public string ResponseBody { get; } = responseBody;
+    public ExtractionsApiException(HttpStatusCode statusCode, string responseBody, string service = "OpenRouter")
+        : base($"{service} Extractions returned HTTP {(int)statusCode} ({statusCode}).", null, statusCode)
+    {
+        StatusCode = statusCode;
+        ResponseBody = responseBody;
+        Service = service;
+    }
+
+    /// <summary>The HTTP status the provider returned.</summary>
+    public new HttpStatusCode StatusCode { get; }
+
+    /// <summary>The raw response body, which usually carries the provider's error detail.</summary>
+    public string ResponseBody { get; }
+
+    /// <summary>The provider that returned the error.</summary>
+    public string Service { get; }
 }

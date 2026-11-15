@@ -50,7 +50,8 @@ public sealed class ExtractionDemoService(
         }
 
         using var http = clients.CreateClient(HttpClientName);
-        using var client = new OpenRouterExtractionsClient(key, http);
+        // The workspace shows provider errors with a retry action, so the client makes a single attempt.
+        using var client = new OpenRouterExtractionsClient(key, http, new OpenRouterExtractionsClientOptions { MaxAttempts = 1 });
         return await client.ExtractAsync(request, cancellationToken);
     }
 }
