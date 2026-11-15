@@ -9,7 +9,7 @@ public sealed class OpenAIChecks
     private const string Png = "iVBORw0KGgo=";
 
     [Fact]
-    public async Task OpenAIRequestsAndResponsesFollowTheContractAsync()
+    public async Task RequestsAndResponsesFollowTheContractAsync()
     {
         JsonElement sent = default;
         var calls = 0;
@@ -38,7 +38,7 @@ public sealed class OpenAIChecks
             .Noul("urgent", "Is this urgent?", out var urgent, "Blocking the customer", "Can wait")
             .Choice("team", "Which team?", out var team, ("billing", "Payments"), ("other", null))
             .Score("anger", "How angry?", out var anger, "Calm", "Upset", "Furious")
-            .Build(OpenAIDecisionsClient.DefaultModel));
+            .Build(OpenAIDecisionsClient.DefaultModel), TestCancellation);
 
         Assert.True(calls == 2, "OpenAI retries 500");
         Assert.True(sent.GetProperty("model").GetString() == "gpt-6-luna", "OpenAI model");
@@ -61,68 +61,75 @@ public sealed class OpenAIChecks
         Assert.True(response.Get(anger).Score == 1.4 && response.Get(anger).Probabilities["2"] == 0.5 &&
             response.Get(anger).Legend["1"] == "Upset", "Score answer");
         Assert.True(response.Usage.InputTokens == 40 && response.Usage.OutputTokens == 0, "OpenAI usage");
+    }
 
-        // Images become a user message with ordered parts.
-        using var imageClient = new OpenAIDecisionsClient("openai-key", new HttpClient(new StubHandler(message =>
+    [Fact]
+    public async Task ImagesBecomeOrderedMessagePartsAndRefusalsAreTypedAsync()
+    {
+        JsonElement sent = default;
+        using var client = new OpenAIDecisionsClient("openai-key", new HttpClient(new StubHandler(message =>
         {
             sent = JsonDocument.Parse(message.Content!.ReadAsStringAsync().GetAwaiter().GetResult()).RootElement.Clone();
             return Ok("""{"model":"gpt-6-luna","answers":[{"type":"refusal","name":"ok"}],"usage":{"input_tokens":5,"output_tokens":0}}""");
         })));
-        var refused = await imageClient.EvaluateAsync(DecisionsRequest.Create(
+
+        var refused = await client.EvaluateAsync(DecisionsRequest.Create(
                 DecisionsValue.FromParts("Listing photo", DecisionsValue.ImageFromDataUrl($"data:image/png;base64,{Png}")))
-            .Noul("ok", "Does the photo match?").Build(OpenAIDecisionsClient.DefaultModel));
+            .Noul("ok", "Does the photo match?").Build(OpenAIDecisionsClient.DefaultModel), TestCancellation);
+
         var message = sent.GetProperty("input")[0];
         var parts = message.GetProperty("content").EnumerateArray().ToArray();
         Assert.True(message.GetProperty("role").GetString() == "user" && parts[0].GetProperty("type").GetString() == "input_text" &&
             parts[1].GetProperty("type").GetString() == "input_image" &&
             parts[1].GetProperty("image_url").GetString() == $"data:image/png;base64,{Png}", "Image input parts");
-        Assert.True(refused.Answers["ok"] is RefusalAnswer, "Refusal answer");
-        try { refused.GetAnswer<NoulAnswer>("ok"); throw new Exception("Expected refusal to fail typed read"); }
-        catch (InvalidOperationException) { }
+        Assert.IsType<RefusalAnswer>(refused.Answers["ok"]);
+        Assert.Throws<InvalidOperationException>(() => refused.GetAnswer<NoulAnswer>("ok"));
+    }
 
-        await ExpectAsync<NotSupportedException>(() => imageClient.EvaluateAsync(
-            DecisionsRequest.Create("x").Box("b", "Find it").Build(OpenAIDecisionsClient.DefaultModel)), "Box unsupported");
+    [Fact]
+    public async Task BoxQuestionsAreNotSupportedAsync()
+    {
+        using var client = new OpenAIDecisionsClient("k", new HttpClient(new StubHandler(_ => Ok("{}"))));
+        await Assert.ThrowsAsync<NotSupportedException>(() => client.EvaluateAsync(
+            DecisionsRequest.Create("x").Box("b", "Find it").Build(OpenAIDecisionsClient.DefaultModel), TestCancellation));
+    }
 
-        using var mismatched = new OpenAIDecisionsClient("k", new HttpClient(new StubHandler(_ => Ok(
+    [Fact]
+    public async Task AnswerForAnUnaskedQuestionIsAProtocolErrorAsync()
+    {
+        using var client = new OpenAIDecisionsClient("k", new HttpClient(new StubHandler(_ => Ok(
             """{"model":"gpt-6-luna","answers":[{"type":"predicate","name":"other","probability":0.5}],"usage":{"input_tokens":1,"output_tokens":0}}"""))));
-        await ExpectAsync<JsonException>(() => mismatched.EvaluateAsync(
-            DecisionsRequest.Create("x").Noul("ok", "OK?").Build(OpenAIDecisionsClient.DefaultModel)), "Unexpected answer name");
+        await Assert.ThrowsAnyAsync<JsonException>(() => client.EvaluateAsync(
+            DecisionsRequest.Create("x").Noul("ok", "OK?").Build(OpenAIDecisionsClient.DefaultModel), TestCancellation));
+    }
 
-        using var failing = new OpenAIDecisionsClient("k", new HttpClient(new StubHandler(_ =>
+    [Fact]
+    public async Task ErrorsCarryTheProviderDetailAsync()
+    {
+        using var client = new OpenAIDecisionsClient("k", new HttpClient(new StubHandler(_ =>
             new HttpResponseMessage(HttpStatusCode.BadRequest) { Content = new StringContent("bad model") })));
-        try
-        {
-            await failing.EvaluateAsync(DecisionsRequest.Create("x").Noul("ok", "OK?").Build("jev-latest"));
-            throw new Exception("Expected DecisionsApiException");
-        }
-        catch (DecisionsApiException error)
-        {
-            Assert.True(error.Service == "OpenAI" && error.ResponseBody == "bad model", "OpenAI error details");
-        }
+        var error = await Assert.ThrowsAsync<DecisionsApiException>(() => client.EvaluateAsync(
+            DecisionsRequest.Create("x").Noul("ok", "OK?").Build("jev-latest"), TestCancellation));
+        Assert.True(error.Service == "OpenAI" && error.ResponseBody == "bad model", "OpenAI error details");
+    }
 
+    [Fact]
+    public void RegistrationsResolveTheOpenAIClient()
+    {
         var services = new ServiceCollection();
         services.AddOpenAIDecisionsClient(new ConfigurationBuilder().AddInMemoryCollection(
             new Dictionary<string, string?> { ["OpenAI:ApiKey"] = "cfg-key" }).Build());
         services.AddKeyedOpenAIDecisionsClient("luna", "keyed-key");
         using var provider = services.BuildServiceProvider();
-        Assert.True(provider.GetRequiredService<IDecisionsClient>() is OpenAIDecisionsClient &&
-            provider.GetRequiredKeyedService<IDecisionsClient>("luna") is OpenAIDecisionsClient, "OpenAI DI registration");
-        try { new ServiceCollection().AddOpenAIDecisionsClient(new ConfigurationBuilder().Build()); throw new Exception("Expected missing key"); }
-        catch (InvalidOperationException error) when (error.Message.Contains("OpenAI:ApiKey")) { }
+        Assert.IsType<OpenAIDecisionsClient>(provider.GetRequiredService<IDecisionsClient>());
+        Assert.IsType<OpenAIDecisionsClient>(provider.GetRequiredKeyedService<IDecisionsClient>("luna"));
+
+        var missing = Assert.Throws<InvalidOperationException>(() =>
+            new ServiceCollection().AddOpenAIDecisionsClient(new ConfigurationBuilder().Build()));
+        Assert.Contains("OpenAI:ApiKey", missing.Message);
     }
+
+    private static CancellationToken TestCancellation => TestContext.Current.CancellationToken;
 
     private static HttpResponseMessage Ok(string json) => new(HttpStatusCode.OK) { Content = new StringContent(json) };
-
-    private static async Task ExpectAsync<TException>(Func<Task> action, string name) where TException : Exception
-    {
-        try { await action(); throw new Exception($"Expected {typeof(TException).Name}: {name}"); }
-        catch (TException) { }
-    }
-
-
-    private sealed class StubHandler(Func<HttpRequestMessage, HttpResponseMessage> respond) : HttpMessageHandler
-    {
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-            => Task.FromResult(respond(request));
-    }
 }

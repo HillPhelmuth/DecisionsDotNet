@@ -5,22 +5,33 @@ using DecisionsDotNet;
 
 public sealed class OpenRouterChecks
 {
+    private static readonly Dictionary<string, DecisionsQuestion> Questions = new()
+    {
+        ["urgent"] = new NoulQuestion(DecisionsValue.FromObject(new { prompt = "Is this urgent?" }),
+            new NoulCriteria(True: DecisionsValue.FromObject(new { description = "Time-sensitive" }))),
+        ["team"] = new ChoiceQuestion("Which team?", new Dictionary<string, DecisionsValue?>
+        {
+            ["billing"] = DecisionsValue.FromObject(new { description = "Payments" }),
+            ["technical"] = DecisionsValue.FromArray(new[] { "Bugs" })
+        }),
+        ["severity"] = new ScoreQuestion("How severe?", new DecisionsValue[] { "Low", "High" })
+    };
+
+    private static readonly OpenRouterDecisionsClientOptions NoDelay = new()
+    {
+        MaxAttempts = 5, InitialRetryDelay = TimeSpan.Zero, MaxRetryDelay = TimeSpan.Zero
+    };
+
+    private static CancellationToken TestCancellation => TestContext.Current.CancellationToken;
+
+    private static DecisionsRequest Request() =>
+        new(DecisionsValue.FromObject(new { message = "Help" }), Questions, "typesafe/jev-1.13");
+
     [Fact]
-    public async Task OpenRouterRequestsAndResponsesFollowTheContractAsync()
+    public async Task RequestsAndResponsesFollowTheContractAsync()
     {
         var calls = 0;
-        var questions = new Dictionary<string, DecisionsQuestion>
-        {
-            ["urgent"] = new NoulQuestion(DecisionsValue.FromObject(new { prompt = "Is this urgent?" }),
-                new NoulCriteria(True: DecisionsValue.FromObject(new { description = "Time-sensitive" }))),
-            ["team"] = new ChoiceQuestion("Which team?", new Dictionary<string, DecisionsValue?>
-            {
-                ["billing"] = DecisionsValue.FromObject(new { description = "Payments" }),
-                ["technical"] = DecisionsValue.FromArray(new[] { "Bugs" })
-            }),
-            ["severity"] = new ScoreQuestion("How severe?", new DecisionsValue[] { "Low", "High" })
-        };
-        var request = new DecisionsRequest(DecisionsValue.FromObject(new { message = "Help" }), questions, "typesafe/jev-1.13");
+        var request = Request();
         using (var client = new OpenRouterDecisionsClient("router-key", new HttpClient(new StubHandler(message =>
         {
             calls++;
@@ -54,7 +65,7 @@ public sealed class OpenRouterChecks
             }
         }))
         {
-            var result = await client.EvaluateAsync(request);
+            var result = await client.EvaluateAsync(request, TestCancellation);
             Assert.True(result.Model == "typesafe/jev-1.13-20260917", "Resolved OpenRouter model");
             Assert.True(result.Id == "gen-dec-test" && result.Provider == "TypeSafe", "OpenRouter response metadata");
             Assert.True(result.Usage.Cost == 0.000019992m && result.Usage.InputTokens == 476, "OpenRouter usage and cost");
@@ -65,35 +76,50 @@ public sealed class OpenRouterChecks
         Assert.True(calls == 1, "One OpenRouter call");
         Assert.True(request.State.ToJsonElement().ValueKind == JsonValueKind.Object &&
             request.State.ToJsonElement().GetProperty("message").GetString() == "Help", "Original object state preserved");
+    }
 
-        var states = new[]
+    // Indexes rather than values, so each case shows up by a stable name in the test list.
+    private static readonly DecisionsValue[] States =
+    [
+        DecisionsValue.FromArray(new object[] { "Help", new { nested = new[] { 1, 2 } }, true, 3 }),
+        DecisionsValue.Text("Help"), DecisionsValue.Text(""),
+        DecisionsValue.Text("Quotes: \"help\"; path: C:\\temp\\file\nNext line\r\nUnicode: café 日本語 😀"),
+        DecisionsValue.Text("{\"message\":\"Help\"}")
+    ];
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    public async Task EveryStateIsSentAsAStringAndLeftUnchangedAsync(int index)
+    {
+        var input = States[index];
+        var original = input.ToJsonElement();
+        using var client = new OpenRouterDecisionsClient("router-key", new HttpClient(new StubHandler(message =>
         {
-            DecisionsValue.FromArray(new object[] { "Help", new { nested = new[] { 1, 2 } }, true, 3 }),
-            DecisionsValue.Text("Help"), DecisionsValue.Text(""),
-            DecisionsValue.Text("Quotes: \"help\"; path: C:\\temp\\file\nNext line\r\nUnicode: café 日本語 😀"),
-            DecisionsValue.Text("{\"message\":\"Help\"}")
-        };
-        foreach (var input in states)
-        {
-            var original = input.ToJsonElement();
-            using var client = new OpenRouterDecisionsClient("router-key", new HttpClient(new StubHandler(message =>
+            using var body = JsonDocument.Parse(message.Content!.ReadAsStringAsync().GetAwaiter().GetResult());
+            var sentState = body.RootElement.GetProperty("state");
+            Assert.True(sentState.ValueKind == JsonValueKind.String, "Every OpenRouter state is a string");
+            if (original.ValueKind == JsonValueKind.String)
+                Assert.True(sentState.GetString() == original.GetString(), "OpenRouter text preserved exactly");
+            else
             {
-                using var body = JsonDocument.Parse(message.Content!.ReadAsStringAsync().GetAwaiter().GetResult());
-                var sentState = body.RootElement.GetProperty("state");
-                Assert.True(sentState.ValueKind == JsonValueKind.String, "Every OpenRouter state is a string");
-                if (original.ValueKind == JsonValueKind.String)
-                    Assert.True(sentState.GetString() == original.GetString(), "OpenRouter text preserved exactly");
-                else
-                {
-                    using var decoded = JsonDocument.Parse(sentState.GetString()!);
-                    Assert.True(JsonElement.DeepEquals(decoded.RootElement, original), "OpenRouter array contents preserved");
-                }
-                return Success();
-            })));
-            await client.EvaluateAsync(new DecisionsRequest(input, questions, "test/string-only-model"));
-            Assert.True(JsonElement.DeepEquals(input.ToJsonElement(), original), "Original state preserved");
-        }
+                using var decoded = JsonDocument.Parse(sentState.GetString()!);
+                Assert.True(JsonElement.DeepEquals(decoded.RootElement, original), "OpenRouter array contents preserved");
+            }
+            return Success();
+        })));
 
+        await client.EvaluateAsync(new DecisionsRequest(input, Questions, "test/string-only-model"), TestCancellation);
+
+        Assert.True(JsonElement.DeepEquals(input.ToJsonElement(), original), "Original state preserved");
+    }
+
+    [Fact]
+    public async Task TransientErrorsAreRetriedWithTheSameBodyAsync()
+    {
         var retries = 0;
         string? firstRetryBody = null;
         var statuses = new[] { 429, 502, 503, 529 };
@@ -110,40 +136,36 @@ public sealed class OpenRouterChecks
             { Content = new StringContent("temporary") };
             if (status == 0) response.Headers.RetryAfter = new RetryConditionHeaderValue(TimeSpan.Zero);
             return response;
-        })), new OpenRouterDecisionsClientOptions
+        })), NoDelay))
         {
-            MaxAttempts = 5, InitialRetryDelay = TimeSpan.Zero, MaxRetryDelay = TimeSpan.Zero
-        }))
-        {
-            await client.EvaluateAsync(request);
+            await client.EvaluateAsync(Request(), TestCancellation);
             Assert.True(retries == 5, "OpenRouter transient retries");
         }
+    }
 
-        foreach (var status in new[] { 402, 524 })
+    [Theory]
+    [InlineData(402)]
+    [InlineData(524)]
+    public async Task OtherErrorsAreNotRetriedAndCarryTheProviderDetailAsync(int status)
+    {
+        var attempts = 0;
+        using var client = new OpenRouterDecisionsClient("router-key", new HttpClient(new StubHandler(_ =>
         {
-            var attempts = 0;
-            using var client = new OpenRouterDecisionsClient("router-key", new HttpClient(new StubHandler(_ =>
-            {
-                attempts++;
-                return new HttpResponseMessage((HttpStatusCode)status) { Content = new StringContent("error detail") };
-            })), new OpenRouterDecisionsClientOptions
-            {
-                InitialRetryDelay = TimeSpan.Zero, MaxRetryDelay = TimeSpan.Zero
-            });
-            try
-            {
-                await client.EvaluateAsync(request);
-                throw new Exception("Expected OpenRouter API exception");
-            }
-            catch (DecisionsApiException error)
-            {
-                Assert.True((int)error.StatusCode == status && error.ResponseBody == "error detail" &&
-                    error.Service == "OpenRouter" && error.Message.Contains("OpenRouter"),
-                    $"OpenRouter HTTP {status} error detail");
-                Assert.True(attempts == 1, $"OpenRouter HTTP {status} is not retried");
-            }
-        }
+            attempts++;
+            return new HttpResponseMessage((HttpStatusCode)status) { Content = new StringContent("error detail") };
+        })), NoDelay);
 
+        var error = await Assert.ThrowsAsync<DecisionsApiException>(() => client.EvaluateAsync(Request(), TestCancellation));
+
+        Assert.True((int)error.StatusCode == status && error.ResponseBody == "error detail" &&
+            error.Service == "OpenRouter" && error.Message.Contains("OpenRouter"),
+            $"OpenRouter HTTP {status} error detail");
+        Assert.Equal(1, attempts);
+    }
+
+    [Fact]
+    public async Task ExhaustedRetriesPreserveTheLastErrorAsync()
+    {
         var exhaustedAttempts = 0;
         using (var client = new OpenRouterDecisionsClient("router-key", new HttpClient(new StubHandler(_ =>
         {
@@ -155,34 +177,27 @@ public sealed class OpenRouterChecks
             MaxAttempts = 3, InitialRetryDelay = TimeSpan.Zero, MaxRetryDelay = TimeSpan.Zero
         }))
         {
-            try
-            {
-                await client.EvaluateAsync(request);
-                throw new Exception("Expected exhausted OpenRouter retry error");
-            }
-            catch (DecisionsApiException error)
-            {
-                Assert.True(exhaustedAttempts == 3 && error.StatusCode == HttpStatusCode.TooManyRequests &&
-                    error.ResponseBody == "still rate limited" && error.Service == "OpenRouter",
-                    "OpenRouter exhausted retries preserve error detail");
-            }
+            var error = await Assert.ThrowsAsync<DecisionsApiException>(() => client.EvaluateAsync(Request(), TestCancellation));
+            Assert.True(exhaustedAttempts == 3 && error.StatusCode == HttpStatusCode.TooManyRequests &&
+                error.ResponseBody == "still rate limited" && error.Service == "OpenRouter",
+                "OpenRouter exhausted retries preserve error detail");
         }
+    }
 
+    [Fact]
+    public async Task AnswerOfTheWrongTypeIsAProtocolErrorAsync()
+    {
         using (var client = new OpenRouterDecisionsClient("router-key", new HttpClient(new StubHandler(_ =>
             new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent("{\"model\":\"typesafe/jev-1.13\",\"answers\":{\"urgent\":{\"type\":\"choice\",\"choice\":\"billing\",\"probabilities\":{\"billing\":1},\"confidence\":1}},\"usage\":{\"input_tokens\":1,\"output_tokens\":1}}")
             }))))
         {
-            try
-            {
-                await client.EvaluateAsync(new DecisionsRequest("test", new Dictionary<string, DecisionsQuestion>
+            await Assert.ThrowsAnyAsync<JsonException>(() => client.EvaluateAsync(
+                new DecisionsRequest("test", new Dictionary<string, DecisionsQuestion>
                 {
                     ["urgent"] = new NoulQuestion("Urgent?")
-                }, "typesafe/jev-1.13"));
-                throw new Exception("Expected OpenRouter protocol error");
-            }
-            catch (JsonException) { }
+                }, "typesafe/jev-1.13"), TestCancellation));
         }
     }
 

@@ -5,8 +5,10 @@ using Microsoft.Extensions.DependencyInjection;
 
 public sealed class KeyedRegistrationChecks
 {
+    private static readonly Dictionary<string, DecisionsQuestion> Questions = new() { ["ok"] = new NoulQuestion("OK?") };
+
     [Fact]
-    public async Task KeyedClientsResolveIndependentlyAsync()
+    public async Task KeyedClientsKeepSeparateKeysAndEndpointsAsync()
     {
         var services = new ServiceCollection();
         var seen = new List<string>();
@@ -17,9 +19,7 @@ public sealed class KeyedRegistrationChecks
                     {"data":[{"id":"typesafe/jev-1.13","architecture":{"input_modalities":["text"]}}]}
                     """) };
             seen.Add($"{message.RequestUri} {message.Headers.Authorization}");
-            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("""
-                {"model":"jev-1.13.0","answers":{"ok":{"type":"noul","noul":0.9}},"usage":{"input_tokens":1,"output_tokens":1}}
-                """) };
+            return Answer();
         });
 
         services.AddKeyedTypeSafeDecisionsClient("direct", "direct-key").ConfigurePrimaryHttpMessageHandler(Stub);
@@ -36,50 +36,51 @@ public sealed class KeyedRegistrationChecks
         var local = provider.GetRequiredKeyedService<IDecisionsClient>("local");
         Assert.True(direct is TypeSafeDecisionsClient && router is OpenRouterDecisionsClient && local is TypeSafeDecisionsClient, "Keyed provider types");
 
-        var questions = new Dictionary<string, DecisionsQuestion> { ["ok"] = new NoulQuestion("OK?") };
-        await direct.EvaluateAsync(new DecisionsRequest("x", questions, TypeSafeDecisionsClient.DefaultModel));
-        await router.EvaluateAsync(new DecisionsRequest("x", questions, "typesafe/jev-1.13"));
-        await local.EvaluateAsync(new DecisionsRequest("x", questions, TypeSafeDecisionsClient.DefaultModel));
-        Assert.True(seen.SequenceEqual(new[]
-        {
+        await direct.EvaluateAsync(Request(TypeSafeDecisionsClient.DefaultModel), TestCancellation);
+        await router.EvaluateAsync(Request("typesafe/jev-1.13"), TestCancellation);
+        await local.EvaluateAsync(Request(TypeSafeDecisionsClient.DefaultModel), TestCancellation);
+        Assert.Equal(
+        [
             "https://api.typesafe.ai/v1/systemone Bearer direct-key",
             "https://openrouter.ai/api/alpha/decisions Bearer router-key",
             "http://jev:1234/v1/systemone Bearer local-key"
-        }), "Keyed clients keep separate keys and endpoints");
+        ], seen);
+    }
 
-        // Keys with equal ToString() values keep separate HTTP pipelines.
-        var twins = new ServiceCollection();
+    [Fact]
+    public async Task KeysWithTheSameStringFormUseSeparatePipelinesAsync()
+    {
+        var services = new ServiceCollection();
         var hits = new List<string>();
         HttpMessageHandler Tagged(string tag) => new StubHandler(_ =>
         {
             hits.Add(tag);
-            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("""
-                {"model":"jev-1.13.0","answers":{"ok":{"type":"noul","noul":0.9}},"usage":{"input_tokens":1,"output_tokens":1}}
-                """) };
+            return Answer();
         });
-        twins.AddKeyedTypeSafeDecisionsClient(1, "int-key").ConfigurePrimaryHttpMessageHandler(() => Tagged("int"));
-        twins.AddKeyedTypeSafeDecisionsClient("1", "string-key").ConfigurePrimaryHttpMessageHandler(() => Tagged("string"));
-        using (var twinProvider = twins.BuildServiceProvider())
-        {
-            await twinProvider.GetRequiredKeyedService<IDecisionsClient>(1).EvaluateAsync(new DecisionsRequest("x", questions, TypeSafeDecisionsClient.DefaultModel));
-            await twinProvider.GetRequiredKeyedService<IDecisionsClient>("1").EvaluateAsync(new DecisionsRequest("x", questions, TypeSafeDecisionsClient.DefaultModel));
-        }
-        Assert.True(hits.SequenceEqual(new[] { "int", "string" }), "Keys with the same string form use separate pipelines");
+        services.AddKeyedTypeSafeDecisionsClient(1, "int-key").ConfigurePrimaryHttpMessageHandler(() => Tagged("int"));
+        services.AddKeyedTypeSafeDecisionsClient("1", "string-key").ConfigurePrimaryHttpMessageHandler(() => Tagged("string"));
 
-        ExpectArgument(() => new ServiceCollection().AddKeyedOpenRouterDecisionsClient("k", " "), "Keyed empty key");
-        ExpectArgument(() => new ServiceCollection().AddKeyedTypeSafeDecisionsClient(null!, "key"), "Keyed null service key");
+        using var provider = services.BuildServiceProvider();
+        await provider.GetRequiredKeyedService<IDecisionsClient>(1)
+            .EvaluateAsync(Request(TypeSafeDecisionsClient.DefaultModel), TestCancellation);
+        await provider.GetRequiredKeyedService<IDecisionsClient>("1")
+            .EvaluateAsync(Request(TypeSafeDecisionsClient.DefaultModel), TestCancellation);
+
+        Assert.Equal(["int", "string"], hits);
     }
 
-    private static void ExpectArgument(Action action, string name)
+    [Fact]
+    public void KeyedRegistrationsRejectInvalidArguments()
     {
-        try { action(); throw new Exception($"Expected argument error: {name}"); }
-        catch (ArgumentException) { }
+        Assert.ThrowsAny<ArgumentException>(() => new ServiceCollection().AddKeyedOpenRouterDecisionsClient("k", " "));
+        Assert.ThrowsAny<ArgumentException>(() => new ServiceCollection().AddKeyedTypeSafeDecisionsClient(null!, "key"));
     }
 
+    private static CancellationToken TestCancellation => TestContext.Current.CancellationToken;
 
-    private sealed class StubHandler(Func<HttpRequestMessage, HttpResponseMessage> respond) : HttpMessageHandler
-    {
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-            => Task.FromResult(respond(request));
-    }
+    private static DecisionsRequest Request(string model) => new("x", Questions, model);
+
+    private static HttpResponseMessage Answer() => new(HttpStatusCode.OK) { Content = new StringContent("""
+        {"model":"jev-1.13.0","answers":{"ok":{"type":"noul","noul":0.9}},"usage":{"input_tokens":1,"output_tokens":1}}
+        """) };
 }

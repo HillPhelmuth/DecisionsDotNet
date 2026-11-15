@@ -31,8 +31,11 @@ dotnet run --project JevDotNet.Demo
 
 ```powershell
 dotnet test --project JevDotNet.Tests/JevDotNet.Tests.csproj
+dotnet test --project JevDotNet.Demo.Tests/JevDotNet.Demo.Tests.csproj
 dotnet pack DecisionsDotNet/DecisionsDotNet.csproj
 ```
+
+`JevDotNet.Tests` covers the three packages and `JevDotNet.Demo.Tests` covers the demo app.
 
 The xUnit v3 tests use fake HTTP handlers and need no API key. The direct client follows the [TypeSafe AI API reference](https://docs.typesafe.ai/api) and [model listing reference](https://docs.typesafe.ai/models).
 
@@ -43,6 +46,29 @@ Three checks run on every build of the packages:
 - `dotnet pack` runs package validation.
 
 Package versions live in `Directory.Build.props`.
+
+### Live smoke tests
+
+Four tests in `LiveSmokeTests.cs` send one real request per provider. They are skipped unless you set `LIVE_TESTS=1` and the provider's key (`OPENROUTER_API_KEY`, `TYPESAFE_API_KEY`, or `OPENAI_API_KEY`). Each costs a fraction of a cent.
+
+```powershell
+$env:LIVE_TESTS = "1"
+$env:OPENROUTER_API_KEY = "<your-api-key>"
+dotnet test --project JevDotNet.Tests/JevDotNet.Tests.csproj
+```
+
+### Checking the packages
+
+`eng/verify-packages.sh` packs all three packages into `artifacts/nuget`, then builds and runs a small console app against those files instead of the project sources. It runs on every pull request.
+
+## Releasing
+
+A release is a tag on `main`. `DecisionsDotNet` and `DecisionsDotNet.AI` always ship together at one version; `ExtractionsDotNet` versions on its own.
+
+1. Set `DecisionsVersion` or `ExtractionsVersion` in `Directory.Build.props`, update `CHANGELOG.md`, and merge to `main`.
+2. Tag that commit `decisions-v<version>` or `extractions-v<version>` and push the tag, for example `decisions-v1.0.0-rc.1`.
+
+The publish workflow fails early if the tag's version does not match `Directory.Build.props` or the tag is not on `main`. Otherwise it builds, tests, checks the packages, and pushes them to nuget.org. Running the workflow by hand from the Actions tab is a rehearsal that does everything except publish.
 
 ## License
 

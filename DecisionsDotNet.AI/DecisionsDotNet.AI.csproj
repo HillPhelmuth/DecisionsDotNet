@@ -8,7 +8,7 @@
 
   <PropertyGroup>
     <PackageId>DecisionsDotNet.AI</PackageId>
-    <PackageVersion>$(DecisionsVersion)</PackageVersion>
+    <Version>$(DecisionsVersion)</Version>
     <Title>DecisionsDotNet.AI - Decisions as Microsoft.Extensions.AI tools</Title>
     <Description>Exposes any DecisionsDotNet IDecisionsClient (TypeSafe Jev, OpenRouter, or OpenAI Decisions) as a Microsoft.Extensions.AI AIFunction, so chat clients and Microsoft Agent Framework agents can call it as a tool.</Description>
     <PackageTags>Jev;TypeSafe;OpenRouter;OpenAI;AI;decisions;tools;agents;Microsoft.Extensions.AI</PackageTags>

@@ -3,5 +3,6 @@
   <Project Path="DecisionsDotNet.AI/DecisionsDotNet.AI.csproj" />
   <Project Path="JevDotNet.Demo/JevDotNet.Demo.csproj" Id="278f2455-b942-4ec8-b99f-172dc735c8ae" />
   <Project Path="JevDotNet.Tests/JevDotNet.Tests.csproj" />
+  <Project Path="JevDotNet.Demo.Tests/JevDotNet.Demo.Tests.csproj" />
   <Project Path="DecisionsDotNet/DecisionsDotNet.csproj" />
 </Solution>

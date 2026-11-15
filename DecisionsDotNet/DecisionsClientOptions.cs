@@ -11,4 +11,7 @@ public abstract class DecisionsClientOptions
 
     /// <summary>The longest delay between attempts, including delays requested by a Retry-After header.</summary>
     public TimeSpan MaxRetryDelay { get; init; } = TimeSpan.FromSeconds(30);
+
+    /// <summary>The clock behind retry delays. Tests replace it to observe delays without waiting.</summary>
+    internal TimeProvider Clock { get; init; } = TimeProvider.System;
 }
