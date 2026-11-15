@@ -2,8 +2,8 @@
 
   <!-- Versions. DecisionsDotNet and DecisionsDotNet.AI always ship together; ExtractionsDotNet versions on its own. -->
   <PropertyGroup>
-    <DecisionsVersion>1.0.0-rc.1</DecisionsVersion>
-    <ExtractionsVersion>1.0.0-rc.1</ExtractionsVersion>
+    <DecisionsVersion>1.0.0</DecisionsVersion>
+    <ExtractionsVersion>1.0.0</ExtractionsVersion>
   </PropertyGroup>
 
   <!-- The three shipped packages. Everything conditioned on IsShippedPackage skips the demo and tests. -->

@@ -2,9 +2,7 @@
 
 `DecisionsDotNet` and `DecisionsDotNet.AI` share a version. `ExtractionsDotNet` versions on its own. From 1.0.0 all three follow [semantic versioning](https://semver.org/).
 
-## Unreleased: 1.0.0
-
-`1.0.0-rc.1` is the release candidate for all three packages. Install it with `--prerelease`. If nothing turns up, 1.0.0 ships with the same API.
+## 1.0.0 (2026-11-15)
 
 The first stable release. It renames the remaining `Jev` types, makes a few shapes explicit, and brings `ExtractionsDotNet` level with the Decisions packages. Everything below is a change from 0.3.0-preview.
 
