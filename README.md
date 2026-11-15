@@ -66,7 +66,15 @@ dotnet test --project JevDotNet.Tests/JevDotNet.Tests.csproj
 A release is a tag on `main`. `DecisionsDotNet` and `DecisionsDotNet.AI` always ship together at one version; `ExtractionsDotNet` versions on its own.
 
 1. Set `DecisionsVersion` or `ExtractionsVersion` in `Directory.Build.props`, update `CHANGELOG.md`, and merge to `main`.
-2. Tag that commit `decisions-v<version>` or `extractions-v<version>` and push the tag, for example `decisions-v1.0.0-rc.1`.
+2. Tag the merge commit `decisions-v<version>` or `extractions-v<version>` and push the tag. Tag `origin/main` after a fetch, so a local checkout that is behind cannot put the tag on an old commit:
+
+```powershell
+git fetch origin
+git tag decisions-v1.0.0 origin/main
+git push origin decisions-v1.0.0
+```
+
+For a stable release, also move the entries in each package's `PublicAPI.Unshipped.txt` into `PublicAPI.Shipped.txt` in step 1.
 
 The publish workflow fails early if the tag's version does not match `Directory.Build.props` or the tag is not on `main`. Otherwise it builds, tests, checks the packages, and pushes them to nuget.org. Running the workflow by hand from the Actions tab is a rehearsal that does everything except publish.
 
