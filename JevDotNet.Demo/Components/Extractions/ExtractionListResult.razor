@@ -1,0 +1,41 @@
+@using ExtractionsDotNet
+@typeparam TItem
+
+@if (List.Value is null)
+{
+    <p class="extraction-value">Not found</p>
+    @if (List.Guess is { Count: > 0 } guesses)
+    {
+        <p class="extraction-meta">Model guess: @string.Join(", ", guesses.Select(item => ExtractionFieldResult.Display(item, Unit)))</p>
+    }
+}
+else if (List.Value.Count == 0)
+{
+    <p class="extraction-value">No items returned</p>
+}
+else
+{
+    <ul class="extraction-items">
+        @for (var index = 0; index < List.Value.Count; index++)
+        {
+            <li>
+                @ExtractionFieldResult.Display(List.Value[index], Unit)
+                @if (List.Confidences is { } confidences && index < confidences.Count)
+                {
+                    <small class="extraction-meta">· @confidences[index].ToString("P1") confidence</small>
+                }
+                @if (List.Spans is { } spans && index < spans.Count &&
+                     ExtractionFieldResult.Excerpt(SourceText, spans[index]) is { } excerpt)
+                {
+                    <blockquote class="extraction-excerpt">@excerpt</blockquote>
+                }
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    [Parameter, EditorRequired] public ExtractionListAnswer<TItem> List { get; set; } = default!;
+    [Parameter] public string? SourceText { get; set; }
+    [Parameter] public string? Unit { get; set; }
+}

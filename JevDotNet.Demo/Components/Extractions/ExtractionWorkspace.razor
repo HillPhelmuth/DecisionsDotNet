@@ -1,0 +1,48 @@
+@using ExtractionsDotNet
+@using JevDotNet.Demo.Services
+
+<PageTitle>@Title · Extractions Lab</PageTitle>
+
+<header class="extraction-hero extraction-workspace-hero">
+    <a class="extraction-link" href="extractions">← All extraction demos</a>
+    <h1>@Title</h1>
+    <p>@Description</p>
+    <p class="extraction-model">Model <code>@Demo.Model</code></p>
+</header>
+
+@if (!Service.HasApiKey)
+{
+    <ApiKeyNotice />
+}
+
+<div class="extraction-workbench">
+    <section class="extraction-panel">
+        <h2>Source</h2>
+        @ChildContent
+        <div class="extraction-actions">
+            <button class="extraction-primary" type="button" @onclick="RunAsync" disabled="@(!CanRun)">
+                Extract fields
+            </button>
+            @if (_run is not null)
+            {
+                <button class="extraction-secondary" type="button" @onclick="Cancel">Cancel</button>
+            }
+            <span role="status">@_status</span>
+        </div>
+        @if (_error is not null)
+        {
+            <p class="extraction-error" role="alert">@_error</p>
+        }
+    </section>
+
+    <section class="extraction-panel">
+        <h2>Fields to extract</h2>
+        <ExtractionSchema Fields="Demo.Fields" />
+    </section>
+</div>
+
+@if (_response is not null)
+{
+    <ExtractionResults Response="_response" Fields="Demo.Fields"
+                       SourceText="@(_response.StateText ?? (Sample is null ? State : null))" />
+}

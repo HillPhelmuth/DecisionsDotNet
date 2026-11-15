@@ -330,6 +330,20 @@ The **Pick a lane** demo at `/pick-a-lane` lets the selected model drive alone o
 
 The **Bulk triage** page uses 95 bundled support messages. Select a Decisions model, then choose a batch size from 2 to 95 messages per request, or evaluate one message per request. Each message adds five questions, and the final batch may be smaller than the chosen size. A Microsoft Agent Framework agent sends the same five questions to `openai/gpt-6-luna` one message at a time with JSON-schema structured output. The three tabs show each model's scores and request times, then yes/no agreement at 50% and the average absolute score gap. Percentages from the bundled JSON appear as reference values only; they are never sent to either model or counted in the agreement metrics. Cancel stops future requests, and a rejected Decisions batch is reported without changing modes automatically.
 
+### Extractions Lab
+
+Open [Extractions Lab](http://localhost:5120/extractions) from the demo home page or sidebar. It uses the same server-side `OpenRouter:ApiKey` user secret as the Decisions demos. Samples and schemas can be browsed without a key. Click **Extract fields** to send the current dispatch or selected bundled file.
+
+| Demo | Input | Fields |
+| --- | --- | --- |
+| [Expedition Dispatch](http://localhost:5120/extractions/dispatch) | Editable text | Text, number, date, time, datetime, duration, lists of text/numbers/dates, numeric estimate, three-day numeric forecast |
+| [Cargo Tag](http://localhost:5120/extractions/cargo-tag) | Bundled PNG, JPEG, or WebP | Crate ID, weight, inspection date, contents list |
+| [Permit Desk](http://localhost:5120/extractions/permit) | Bundled PDF | Permit ID, issuing office, approved activities list, deliberately absent emergency phone |
+
+Dispatch and Cargo Tag use Clairic. Permit Desk uses ScaleDown Extract, which accepts PDFs and returns text and text lists. See the [OpenRouter Extractions guide](https://openrouter.ai/docs/guides/community/extractions) for model capabilities.
+
+### Jev as Judge
+
 The **[Jev as Judge](http://localhost:5120/jev-as-judge)** page evaluates Relevance, Completeness, Equivalence, and Groundedness on five-level rubrics. It bundles 100 hand-authored examples in `JevDotNet.Demo/Data/judge-data.json`: twenty-five per evaluator across five scenario families, with five examples at each expected rating from 1 to 5. These labels illustrate the rubrics rather than serving as a validated benchmark.
 
 Choose a decision model and evaluator above the **Single execution run** and **Bulk execution run** tabs. In Single, choose an example, edit its inputs, and click **Judge response**. Relevance uses a query and response; Completeness and Equivalence also use a reference answer; Groundedness uses source context. Expected scores and author-written explanations are never sent to the model. Editing hides the original reference comparison until **Reset example**; selecting a dataset row opens its inputs and full completed Jev result in Single. Switching tabs preserves edits and completed results.

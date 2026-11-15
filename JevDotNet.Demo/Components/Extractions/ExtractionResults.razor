@@ -1,0 +1,35 @@
+@using ExtractionsDotNet
+
+<section class="extraction-panel extraction-results" aria-labelledby="extraction-results-title">
+    <h2 id="extraction-results-title">Extracted fields</h2>
+    <p class="extraction-usage">
+        @if (!string.IsNullOrWhiteSpace(Response.Provider))
+        {
+            <span>@Response.Provider</span>
+        }
+        <span>@Response.Usage.InputTokens input tokens · @Response.Usage.OutputTokens output tokens</span>
+        @if (Response.Usage.Cost is { } cost)
+        {
+            <span>@cost.ToString("$0.########", System.Globalization.CultureInfo.InvariantCulture)</span>
+        }
+    </p>
+    @if (Response.Truncated is true)
+    {
+        <p>The provider read only part of the source.</p>
+    }
+    <div class="extraction-result-grid">
+        @foreach (var (name, answer) in Response.Answers)
+        {
+            <article class="extraction-result" @key="name">
+                <h3><code>@name</code></h3>
+                <ExtractionFieldResult Answer="answer" Field="Fields[name]" SourceText="@SourceText" />
+            </article>
+        }
+    </div>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public ExtractionResponse Response { get; set; } = default!;
+    [Parameter, EditorRequired] public IReadOnlyDictionary<string, ExtractionField> Fields { get; set; } = default!;
+    [Parameter] public string? SourceText { get; set; }
+}

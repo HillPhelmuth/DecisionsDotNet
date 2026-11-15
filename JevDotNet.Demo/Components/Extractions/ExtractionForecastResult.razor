@@ -1,0 +1,46 @@
+@using ExtractionsDotNet
+
+@if (Forecast.Value is null && Forecast.Steps is not { Count: > 0 })
+{
+    <p class="extraction-value">Not found</p>
+    @if (Forecast.Guess is { Count: > 0 } guesses)
+    {
+        <p class="extraction-meta">Model guess: @string.Join(", ", guesses.Select(value => ExtractionFieldResult.Display(value, Unit)))</p>
+    }
+}
+else
+{
+    var count = Math.Max(Forecast.Value?.Count ?? 0, Forecast.Steps?.Count ?? 0);
+    @if (count == 0)
+    {
+        <p class="extraction-value">No steps returned</p>
+    }
+    else
+    {
+        <dl class="extraction-forecast">
+            @for (var index = 0; index < count; index++)
+            {
+                var step = Forecast.Steps?.ElementAtOrDefault(index);
+                var value = step is not null ? step.Value : ValueAt(Forecast.Value, index);
+                var low = step?.P10 ?? ValueAt(Forecast.P10, index);
+                var high = step?.P90 ?? ValueAt(Forecast.P90, index);
+                <div>
+                    <dt>Day @(index + 1)</dt>
+                    <dd>@ExtractionFieldResult.Display(value, Unit)</dd>
+                    @if (low is not null && high is not null)
+                    {
+                        <dd class="extraction-meta">P10–P90: @ExtractionFieldResult.Display(low, null)–@ExtractionFieldResult.Display(high, Unit)</dd>
+                    }
+                </div>
+            }
+        </dl>
+    }
+}
+
+@code {
+    [Parameter, EditorRequired] public ExtractionForecastAnswer<double> Forecast { get; set; } = default!;
+    [Parameter] public string? Unit { get; set; }
+
+    private static double? ValueAt(IReadOnlyList<double>? values, int index) =>
+        values is not null && index < values.Count ? values[index] : null;
+}

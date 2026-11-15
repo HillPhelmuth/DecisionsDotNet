@@ -1,0 +1,19 @@
+@page "/extractions/dispatch"
+@layout ExtractionLayout
+@using JevDotNet.Demo.Components.Extractions
+@using JevDotNet.Demo.Services
+
+<ExtractionWorkspace Title="Expedition Dispatch"
+                     Description="Read the itinerary and crew manifest, then use the latest observations to forecast water use."
+                     Demo="ExtractionDemoCatalog.Dispatch" State="@_state">
+    <label for="dispatch-source">Field dispatch</label>
+    <textarea id="dispatch-source" class="extraction-editor" rows="15" maxlength="12000"
+              @bind="_state" @bind:event="oninput"></textarea>
+    <button class="extraction-secondary" type="button" @onclick="Reset">Reset sample</button>
+</ExtractionWorkspace>
+
+@code {
+    private string _state = ExtractionDemoCatalog.DispatchSample;
+
+    private void Reset() => _state = ExtractionDemoCatalog.DispatchSample;
+}
