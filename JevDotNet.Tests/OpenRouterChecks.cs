@@ -135,7 +135,7 @@ public sealed class OpenRouterChecks
                 await client.EvaluateAsync(request);
                 throw new Exception("Expected OpenRouter API exception");
             }
-            catch (JevApiException error)
+            catch (DecisionsApiException error)
             {
                 Assert.True((int)error.StatusCode == status && error.ResponseBody == "error detail" &&
                     error.Service == "OpenRouter" && error.Message.Contains("OpenRouter"),
@@ -160,7 +160,7 @@ public sealed class OpenRouterChecks
                 await client.EvaluateAsync(request);
                 throw new Exception("Expected exhausted OpenRouter retry error");
             }
-            catch (JevApiException error)
+            catch (DecisionsApiException error)
             {
                 Assert.True(exhaustedAttempts == 3 && error.StatusCode == HttpStatusCode.TooManyRequests &&
                     error.ResponseBody == "still rate limited" && error.Service == "OpenRouter",

@@ -136,7 +136,7 @@ public partial class PlatformRace
             StateHasChanged();
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { return; }
-        catch (Exception error) when (error is JevApiException or HttpRequestException or JsonException or
+        catch (Exception error) when (error is DecisionsApiException or HttpRequestException or JsonException or
             InvalidOperationException or KeyNotFoundException or ArgumentException or OperationCanceledException)
         {
             if (!IsActive(current)) return;
@@ -145,7 +145,7 @@ public partial class PlatformRace
             row.Detail = ErrorMessage(error);
             current.EndRequest(row, RaceRequestStatus.Error);
             Logger.LogDebug(error, "Platform Race decision {RequestId} failed", hop.Id);
-            if (error is JevApiException { StatusCode: HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden or HttpStatusCode.PaymentRequired })
+            if (error is DecisionsApiException { StatusCode: HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden or HttpStatusCode.PaymentRequired })
             {
                 await FinishAsync(current, row.Detail);
                 return;
@@ -166,9 +166,9 @@ public partial class PlatformRace
 
     private static string ErrorMessage(Exception error) => error switch
     {
-        JevApiException { StatusCode: HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden } => "OpenRouter rejected the API key or its permissions.",
-        JevApiException { StatusCode: HttpStatusCode.PaymentRequired } => "OpenRouter reports insufficient credits.",
-        JevApiException api => $"OpenRouter returned HTTP {(int)api.StatusCode}.",
+        DecisionsApiException { StatusCode: HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden } => "OpenRouter rejected the API key or its permissions.",
+        DecisionsApiException { StatusCode: HttpStatusCode.PaymentRequired } => "OpenRouter reports insufficient credits.",
+        DecisionsApiException api => $"OpenRouter returned HTTP {(int)api.StatusCode}.",
         HttpRequestException => "Could not reach OpenRouter.",
         OperationCanceledException => "The request timed out.",
         _ => "The platform choice could not be read."

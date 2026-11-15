@@ -32,7 +32,7 @@ public sealed record TriageCategory(string Key, string Label, string Question, s
 
 public static class BulkTriageCatalog
 {
-    public const string JevModel = "typesafe/jev-1.13";
+    public const string TypeSafeModel = "typesafe/jev-1.13";
     public const string LunaModel = "openai/gpt-6-luna";
 
     public static IReadOnlyList<TriageCategory> Categories { get; } =

@@ -79,7 +79,7 @@ public partial class ImageDemoWorkspace
             Logger.LogWarning(error, "Image evaluation timed out for {Model}", ModelId);
             if (!Disposed) Error = "The model took too long to respond. Try again.";
         }
-        catch (JevApiException error)
+        catch (DecisionsApiException error)
         {
             Logger.LogWarning(error, "Image evaluation failed with HTTP {Status} for {Model}", (int)error.StatusCode, ModelId);
             if (!Disposed) Error = error.StatusCode switch

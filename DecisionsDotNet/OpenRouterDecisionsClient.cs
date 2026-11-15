@@ -4,12 +4,9 @@ using System.Text.Json;
 
 namespace DecisionsDotNet;
 
-public sealed class OpenRouterDecisionsClientOptions
+public sealed class OpenRouterDecisionsClientOptions : DecisionsClientOptions
 {
     public Uri BaseUri { get; init; } = new("https://openrouter.ai/");
-    public int MaxAttempts { get; init; } = 3;
-    public TimeSpan InitialRetryDelay { get; init; } = TimeSpan.FromSeconds(1);
-    public TimeSpan MaxRetryDelay { get; init; } = TimeSpan.FromSeconds(30);
     /// <summary>Input modalities keyed by exact model ID. Overrides bypass catalog discovery for that model.</summary>
     public IReadOnlyDictionary<string, IReadOnlyList<string>> ModelInputModalitiesOverrides { get; init; }
         = new Dictionary<string, IReadOnlyList<string>>();
@@ -38,7 +35,7 @@ public sealed class OpenRouterDecisionsClient : IDecisionsClient, IDisposable
         _modalityOverrides = ModelInputModalities.Snapshot(_options.ModelInputModalitiesOverrides);
         if (_options.BaseUri is null || !_options.BaseUri.IsAbsoluteUri || _options.BaseUri.Scheme != Uri.UriSchemeHttps)
             throw new ArgumentException("BaseUri must be an absolute HTTPS URI.", nameof(options));
-        _retry = new RetryPolicy(_options.MaxAttempts, _options.InitialRetryDelay, _options.MaxRetryDelay, RetryableStatusCodes);
+        _retry = RetryPolicy.From(_options, RetryableStatusCodes);
         _retry.Validate(nameof(options));
         _httpClient = httpClient ?? new HttpClient();
         _ownsHttpClient = httpClient is null;
@@ -77,7 +74,7 @@ public sealed class OpenRouterDecisionsClient : IDecisionsClient, IDisposable
             message.Content = new StringContent(body, Encoding.UTF8, "application/json");
             return message;
         }, _retry, "OpenRouter", cancellationToken).ConfigureAwait(false);
-        return JevResponseValidator.DeserializeAndValidate(content, request.Questions);
+        return DecisionsResponseValidator.DeserializeAndValidate(content, request.Questions);
     }
 
     /// <summary>Lists OpenRouter's Decisions models with their input modalities. The catalog is public; no API key is sent.</summary>
@@ -100,7 +97,7 @@ public sealed class OpenRouterDecisionsClient : IDecisionsClient, IDisposable
         var defaults = new OpenRouterDecisionsClientOptions();
         var content = await DecisionsHttp.SendAsync(httpClient,
             () => new HttpRequestMessage(HttpMethod.Get, new Uri(baseUri, OpenRouterModelCatalog.Path)),
-            new RetryPolicy(defaults.MaxAttempts, defaults.InitialRetryDelay, defaults.MaxRetryDelay, RetryableStatusCodes),
+            RetryPolicy.From(defaults, RetryableStatusCodes),
             "OpenRouter", cancellationToken).ConfigureAwait(false);
         return OpenRouterModelCatalog.Parse(content);
     }

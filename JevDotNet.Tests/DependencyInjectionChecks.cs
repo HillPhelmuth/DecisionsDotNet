@@ -12,28 +12,28 @@ public sealed class DependencyInjectionChecks
         {
             await CheckProviderAsync(useConfiguration, openRouter: false);
             await CheckProviderAsync(useConfiguration, openRouter: false,
-                options: new JevClientOptions { BaseUri = new Uri("http://localhost:1234/") });
+                options: new TypeSafeDecisionsClientOptions { BaseUri = new Uri("http://localhost:1234/") });
             await CheckProviderAsync(useConfiguration, openRouter: true);
         }
 
         await CheckProviderAsync(useConfiguration: false, openRouter: false,
-            options: new JevClientOptions { BaseUri = new Uri("http://localhost:1234/") }, localRegistration: true);
+            options: new TypeSafeDecisionsClientOptions { BaseUri = new Uri("http://localhost:1234/") }, localRegistration: true);
         await CheckProviderAsync(useConfiguration: false, openRouter: false,
-            options: new JevClientOptions { BaseUri = new Uri("http://jev:1234/") }, localRegistration: true,
+            options: new TypeSafeDecisionsClientOptions { BaseUri = new Uri("http://jev:1234/") }, localRegistration: true,
             localApiKey: "custom-local-key");
-        ExpectArgument(() => new ServiceCollection().AddLocalJevSystemOneClient(null!), "Local null base URI");
-        ExpectArgument(() => new ServiceCollection().AddLocalJevSystemOneClient(new Uri("http://localhost:1234/"), " "),
+        ExpectArgument(() => new ServiceCollection().AddLocalTypeSafeDecisionsClient(null!), "Local null base URI");
+        ExpectArgument(() => new ServiceCollection().AddLocalTypeSafeDecisionsClient(new Uri("http://localhost:1234/"), " "),
             "Local empty key");
 
-        ExpectArgument(() => new ServiceCollection().AddJevSystemOneClient(" "), "Direct empty key");
+        ExpectArgument(() => new ServiceCollection().AddTypeSafeDecisionsClient(" "), "Direct empty key");
         ExpectArgument(() => new ServiceCollection().AddOpenRouterDecisionsClient(" "), "OpenRouter empty key");
-        ExpectMissingKey(() => new ServiceCollection().AddJevSystemOneClient(new ConfigurationBuilder().Build()),
+        ExpectMissingKey(() => new ServiceCollection().AddTypeSafeDecisionsClient(new ConfigurationBuilder().Build()),
             "TypeSafe:ApiKey");
         ExpectMissingKey(() => new ServiceCollection().AddOpenRouterDecisionsClient(new ConfigurationBuilder().Build()),
             "OpenRouter:ApiKey");
     }
 
-    private static async Task CheckProviderAsync(bool useConfiguration, bool openRouter, JevClientOptions? options = null,
+    private static async Task CheckProviderAsync(bool useConfiguration, bool openRouter, TypeSafeDecisionsClientOptions? options = null,
         bool localRegistration = false, string? localApiKey = null)
     {
         var services = new ServiceCollection();
@@ -51,15 +51,15 @@ public sealed class DependencyInjectionChecks
             }).Build();
         var builder = localRegistration
             ? localApiKey is null
-                ? services.AddLocalJevSystemOneClient(options!.BaseUri)
-                : services.AddLocalJevSystemOneClient(options!.BaseUri, localApiKey)
+                ? services.AddLocalTypeSafeDecisionsClient(options!.BaseUri)
+                : services.AddLocalTypeSafeDecisionsClient(options!.BaseUri, localApiKey)
             : openRouter
             ? useConfiguration
                 ? services.AddOpenRouterDecisionsClient(configuration)
                 : services.AddOpenRouterDecisionsClient(expectedKey)
             : useConfiguration
-                ? services.AddJevSystemOneClient(configuration, options)
-                : services.AddJevSystemOneClient(expectedKey, options);
+                ? services.AddTypeSafeDecisionsClient(configuration, options)
+                : services.AddTypeSafeDecisionsClient(expectedKey, options);
         if (useConfiguration)
             configuration[openRouter ? "OpenRouter:ApiKey" : "TypeSafe:ApiKey"] = "changed-after-registration";
 
@@ -86,7 +86,7 @@ public sealed class DependencyInjectionChecks
 
         using var provider = services.BuildServiceProvider();
         var client = provider.GetRequiredService<IDecisionsClient>();
-        Assert.True(openRouter ? client is OpenRouterDecisionsClient : client is JevClient, "DI provider selection");
+        Assert.True(openRouter ? client is OpenRouterDecisionsClient : client is TypeSafeDecisionsClient, "DI provider selection");
         var request = new DecisionsRequest("A chase", new Dictionary<string, DecisionsQuestion>
         {
             ["move"] = new ChoiceQuestion("Which move?", new Dictionary<string, DecisionsValue?>

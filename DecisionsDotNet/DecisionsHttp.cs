@@ -1,8 +1,11 @@
 namespace DecisionsDotNet;
 
-/// <summary>Bounded retry settings shared by the direct TypeSafe and OpenRouter clients.</summary>
+/// <summary>Bounded retry settings shared by every provider client.</summary>
 internal sealed record RetryPolicy(int MaxAttempts, TimeSpan InitialDelay, TimeSpan MaxDelay, IReadOnlySet<int> RetryableStatusCodes)
 {
+    internal static RetryPolicy From(DecisionsClientOptions options, IReadOnlySet<int> retryableStatusCodes)
+        => new(options.MaxAttempts, options.InitialRetryDelay, options.MaxRetryDelay, retryableStatusCodes);
+
     internal void Validate(string paramName)
     {
         if (MaxAttempts < 1 || InitialDelay < TimeSpan.Zero || MaxDelay < InitialDelay)
@@ -26,7 +29,7 @@ internal static class DecisionsHttp
                 return content;
 
             if (attempt >= policy.MaxAttempts || !policy.RetryableStatusCodes.Contains((int)response.StatusCode))
-                throw new JevApiException(response.StatusCode, content, service);
+                throw new DecisionsApiException(response.StatusCode, content, service);
 
             var backoff = TimeSpan.FromMilliseconds(Math.Min(
                 policy.MaxDelay.TotalMilliseconds,

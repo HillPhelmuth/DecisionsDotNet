@@ -20,7 +20,7 @@ public sealed class AIFunctionChecks
                 Usage = new DecisionsUsage { InputTokens = 1, OutputTokens = 1 },
                 Answers = request.Questions.ToDictionary(pair => pair.Key, pair => pair.Value switch
                 {
-                    NoulQuestion => (JevAnswer)new NoulAnswer { Noul = 0.91234 },
+                    NoulQuestion => (DecisionsAnswer)new NoulAnswer { Noul = 0.91234 },
                     ChoiceQuestion => new ChoiceAnswer { Choice = "billing", Confidence = 0.7,
                         Probabilities = new Dictionary<string, double> { ["billing"] = 0.8, ["other"] = 0.2 } },
                     ScoreQuestion => new ScoreAnswer { Score = 1.4, Confidence = 0.5,

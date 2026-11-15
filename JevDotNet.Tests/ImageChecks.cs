@@ -52,7 +52,7 @@ public sealed class ImageChecks
             return Success();
         }, "image")) await client.EvaluateAsync(Request(state));
 
-        using (var client = new JevClient("key", new HttpClient(new Handler((message, _) =>
+        using (var client = new TypeSafeDecisionsClient("key", new HttpClient(new Handler((message, _) =>
         {
             using var body = Body(message);
             var root = body.RootElement;
@@ -88,7 +88,7 @@ public sealed class ImageChecks
 
         foreach (var model in new[] { "jev-1.13.0", "jev-1.14.0", "jev-latest", "jev-preview" })
         {
-            using var direct = new JevClient("key", new HttpClient(new Handler((message, token) =>
+            using var direct = new TypeSafeDecisionsClient("key", new HttpClient(new Handler((message, token) =>
             {
                 using var body = Body(message);
                 var sent = body.RootElement.GetProperty("state");
@@ -122,13 +122,13 @@ public sealed class ImageChecks
         {
             using var http = new HttpClient(new Handler((_, _) => throw new Exception("Invalid input must not reach HTTP")));
             using var router = new OpenRouterDecisionsClient("key", http, RouterOptions("image"));
-            using var jev = new JevClient("key", http);
+            using var jev = new TypeSafeDecisionsClient("key", http);
             IDecisionsClient client = direct ? jev : router;
             foreach (var state in nestedStates)
                 await ExpectAsync<NotSupportedException>(() => client.EvaluateAsync(Request(state)));
             foreach (var question in imageQuestions)
                 await ExpectAsync<NotSupportedException>(() => client.EvaluateAsync(new DecisionsRequest("text",
-                    new Dictionary<string, DecisionsQuestion> { ["visible"] = question })));
+                    new Dictionary<string, DecisionsQuestion> { ["visible"] = question }, TypeSafeDecisionsClient.DefaultModel)));
             foreach (var badImage in new[]
             {
                 DecisionsValue.FromObject(new { type = "image_url", image_url = new { url = "https://example.com/a.png" } }),
@@ -139,13 +139,13 @@ public sealed class ImageChecks
 
         using (var client = Router(_ => throw new Exception("Image must be rejected before evaluation"), "text"))
             await ExpectAsync<NotSupportedException>(() => client.EvaluateAsync(Request(image)));
-        using (var client = new JevClient("key", new HttpClient(new Handler((_, _) => throw new Exception("No HTTP expected")))))
+        using (var client = new TypeSafeDecisionsClient("key", new HttpClient(new Handler((_, _) => throw new Exception("No HTTP expected")))))
         {
             await ExpectAsync<NotSupportedException>(() => client.EvaluateAsync(Request(image, "unknown")));
             await ExpectAsync<NotSupportedException>(() => client.EvaluateAsync(Request(DecisionsValue.ImageFromDataUrl("data:image/webp;base64,AQID"), "jev-latest")));
         }
-        var options = new JevClientOptions { ModelInputModalitiesOverrides = Overrides("jev-latest", "text") };
-        using var textOnly = new JevClient("key", new HttpClient(new Handler((_, _) => throw new Exception("No HTTP expected"))), options);
+        var options = new TypeSafeDecisionsClientOptions { ModelInputModalitiesOverrides = Overrides("jev-latest", "text") };
+        using var textOnly = new TypeSafeDecisionsClient("key", new HttpClient(new Handler((_, _) => throw new Exception("No HTTP expected"))), options);
         await ExpectAsync<NotSupportedException>(() => textOnly.EvaluateAsync(Request(image, "jev-latest")));
     }
 
@@ -176,7 +176,7 @@ public sealed class ImageChecks
 
         foreach (var model in new[] { "jev-latest", "unknown-direct", "configured-text" })
         {
-            using var client = new JevClient("key", new HttpClient(new Handler((message, _) =>
+            using var client = new TypeSafeDecisionsClient("key", new HttpClient(new Handler((message, _) =>
             {
                 using var body = Body(message);
                 Assert.True(body.RootElement.GetProperty("state").ValueKind ==
@@ -184,7 +184,7 @@ public sealed class ImageChecks
                 Assert.True(!message.Headers.Contains("TypeSafe-Danger-Zone-Images") && !body.RootElement.TryGetProperty("assets", out var unusedAssets),
                     "Text request has no image header or assets");
                 return Task.FromResult(Success());
-            })), new JevClientOptions { ModelInputModalitiesOverrides = Overrides("configured-text", "text") });
+            })), new TypeSafeDecisionsClientOptions { ModelInputModalitiesOverrides = Overrides("configured-text", "text") });
             await client.EvaluateAsync(Request(DecisionsValue.FromObject(new { x = 1 }), model));
         }
 
@@ -199,8 +199,8 @@ public sealed class ImageChecks
         overrides.Clear();
         await configured.EvaluateAsync(Request(DecisionsValue.ImageFromDataUrl(PngUrl)));
 
-        using var directCustom = new JevClient("key", new HttpClient(new Handler((_, _) => Task.FromResult(Success()))),
-            new JevClientOptions { ModelInputModalitiesOverrides = Overrides("custom", "image") });
+        using var directCustom = new TypeSafeDecisionsClient("key", new HttpClient(new Handler((_, _) => Task.FromResult(Success()))),
+            new TypeSafeDecisionsClientOptions { ModelInputModalitiesOverrides = Overrides("custom", "image") });
         await directCustom.EvaluateAsync(Request(DecisionsValue.ImageFromDataUrl(PngUrl), "custom"));
     }
 
@@ -382,7 +382,7 @@ public sealed class ImageChecks
                 Assert.True(body == firstBody, "Image retry bodies and references are identical");
                 return Task.FromResult(++calls == 1 ? new HttpResponseMessage(HttpStatusCode.TooManyRequests) : Success());
             }));
-            using var jev = new JevClient("key", http, new() { InitialRetryDelay = TimeSpan.Zero, MaxRetryDelay = TimeSpan.Zero });
+            using var jev = new TypeSafeDecisionsClient("key", http, new() { InitialRetryDelay = TimeSpan.Zero, MaxRetryDelay = TimeSpan.Zero });
             using var router = new OpenRouterDecisionsClient("key", http, RouterOptions("image"));
             IDecisionsClient client = direct ? jev : router;
             await client.EvaluateAsync(Request(DecisionsValue.ImageFromDataUrl(PngUrl), direct ? "jev-latest" : "test/model"));
@@ -397,7 +397,7 @@ public sealed class ImageChecks
         {
             using var http = new HttpClient(new Handler((_, _) => Task.FromResult(new HttpResponseMessage((HttpStatusCode)status)
                 { Content = new StringContent("image rejected") })));
-            using var jev = new JevClient("key", http);
+            using var jev = new TypeSafeDecisionsClient("key", http);
             using var router = new OpenRouterDecisionsClient("key", http, RouterOptions("image"));
             IDecisionsClient client = direct ? jev : router;
             try
@@ -405,7 +405,7 @@ public sealed class ImageChecks
                 await client.EvaluateAsync(Request(DecisionsValue.ImageFromDataUrl(PngUrl), direct ? "jev-latest" : "test/model"));
                 throw new Exception("Expected provider error");
             }
-            catch (JevApiException error)
+            catch (DecisionsApiException error)
             {
                 Assert.True((int)error.StatusCode == status && error.ResponseBody == "image rejected" &&
                     error.Service == (direct ? "TypeSafe" : "OpenRouter"), "Image provider error retained");

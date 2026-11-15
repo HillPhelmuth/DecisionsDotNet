@@ -3,10 +3,10 @@ using System.Text.Json.Serialization;
 
 namespace DecisionsDotNet;
 
-/// <summary>A typed Jev decisions request accepted by both direct TypeSafe and OpenRouter clients.</summary>
+/// <summary>A typed decisions request accepted by every provider client. The model ID is provider specific.</summary>
 public sealed record DecisionsRequest
 {
-    public DecisionsRequest(DecisionsValue state, IReadOnlyDictionary<string, DecisionsQuestion> questions, string model = "jev-latest")
+    public DecisionsRequest(DecisionsValue state, IReadOnlyDictionary<string, DecisionsQuestion> questions, string model)
     {
         State = state ?? throw new ArgumentNullException(nameof(state));
         ArgumentNullException.ThrowIfNull(questions);
@@ -41,12 +41,12 @@ public sealed record DecisionsResponse
     public required string Model { get; init; }
 
     [JsonPropertyName("answers")]
-    public required IReadOnlyDictionary<string, JevAnswer> Answers { get; init; }
+    public required IReadOnlyDictionary<string, DecisionsAnswer> Answers { get; init; }
 
     [JsonPropertyName("usage")]
     public required DecisionsUsage Usage { get; init; }
 
-    public TAnswer GetAnswer<TAnswer>(string questionId) where TAnswer : JevAnswer
+    public TAnswer GetAnswer<TAnswer>(string questionId) where TAnswer : DecisionsAnswer
     {
         if (!Answers.TryGetValue(questionId, out var answer))
             throw new KeyNotFoundException($"No answer was returned for question '{questionId}'.");
@@ -55,9 +55,13 @@ public sealed record DecisionsResponse
     }
 
     /// <summary>Reads the answer for a key returned by <see cref="DecisionsRequestBuilder"/>.</summary>
-    public TAnswer Get<TAnswer>(DecisionKey<TAnswer> key) where TAnswer : JevAnswer => GetAnswer<TAnswer>(key.Id);
+    public TAnswer Get<TAnswer>(DecisionKey<TAnswer> key) where TAnswer : DecisionsAnswer => GetAnswer<TAnswer>(key.Id);
 
-    public bool TryGetAnswer<TAnswer>(string questionId, [NotNullWhen(true)] out TAnswer? answer) where TAnswer : JevAnswer
+    /// <summary>Reads the answer for a key returned by <see cref="DecisionsRequestBuilder"/>, or returns false when it is absent or of another type, such as a refusal.</summary>
+    public bool TryGet<TAnswer>(DecisionKey<TAnswer> key, [NotNullWhen(true)] out TAnswer? answer) where TAnswer : DecisionsAnswer
+        => TryGetAnswer(key.Id, out answer);
+
+    public bool TryGetAnswer<TAnswer>(string questionId, [NotNullWhen(true)] out TAnswer? answer) where TAnswer : DecisionsAnswer
     {
         answer = Answers.TryGetValue(questionId, out var value) ? value as TAnswer : null;
         return answer is not null;
@@ -82,13 +86,13 @@ public sealed record DecisionsUsage
 [JsonDerivedType(typeof(ScoreAnswer), "score")]
 [JsonDerivedType(typeof(BoxAnswer), "box")]
 [JsonDerivedType(typeof(RefusalAnswer), "refusal")]
-public abstract record JevAnswer;
+public abstract record DecisionsAnswer;
 
 /// <summary>The model declined to answer this question. Only the OpenAI Decisions API returns refusals; other answers in the response can still be present.</summary>
-public sealed record RefusalAnswer : JevAnswer;
+public sealed record RefusalAnswer : DecisionsAnswer;
 
 /// <summary>A single bounding box with confidence from zero to one.</summary>
-public sealed record BoxAnswer : JevAnswer
+public sealed record BoxAnswer : DecisionsAnswer
 {
     [JsonPropertyName("box")]
     public required BoundingBox Box { get; init; }
@@ -113,13 +117,13 @@ public sealed record BoundingBox
     public required double Right { get; init; }
 }
 
-public sealed record NoulAnswer : JevAnswer
+public sealed record NoulAnswer : DecisionsAnswer
 {
     [JsonPropertyName("noul")]
     public required double Noul { get; init; }
 }
 
-public sealed record ChoiceAnswer : JevAnswer
+public sealed record ChoiceAnswer : DecisionsAnswer
 {
     [JsonPropertyName("choice")]
     public required string Choice { get; init; }
@@ -131,7 +135,7 @@ public sealed record ChoiceAnswer : JevAnswer
     public required double Confidence { get; init; }
 }
 
-public sealed record ScoreAnswer : JevAnswer
+public sealed record ScoreAnswer : DecisionsAnswer
 {
     [JsonPropertyName("score")]
     public required double Score { get; init; }
@@ -146,13 +150,13 @@ public sealed record ScoreAnswer : JevAnswer
     public required double Confidence { get; init; }
 }
 
-public sealed record JevModelList
+public sealed record TypeSafeModelList
 {
     [JsonPropertyName("models")]
-    public required IReadOnlyList<JevModel> Models { get; init; }
+    public required IReadOnlyList<TypeSafeModel> Models { get; init; }
 }
 
-public sealed record JevModel
+public sealed record TypeSafeModel
 {
     [JsonPropertyName("name")]
     public required string Name { get; init; }

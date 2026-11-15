@@ -14,8 +14,8 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ExtractionsDotNet\ExtractionsDotNet.csproj" />
-    <ProjectReference Include="..\JevDotNet\JevDotNet.csproj" />
-    <ProjectReference Include="..\JevDotNet.AI\JevDotNet.AI.csproj" />
+    <ProjectReference Include="..\DecisionsDotNet\DecisionsDotNet.csproj" />
+    <ProjectReference Include="..\DecisionsDotNet.AI\DecisionsDotNet.AI.csproj" />
     <ProjectReference Include="..\JevDotNet.Demo\JevDotNet.Demo.csproj" />
   </ItemGroup>
 </Project>

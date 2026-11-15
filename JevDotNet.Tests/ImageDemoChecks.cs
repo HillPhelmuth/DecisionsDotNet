@@ -86,7 +86,7 @@ public sealed class ImageDemoChecks
 
         var response = new DecisionsResponse
         {
-            Model = "typesafe/jev-1.14", Answers = new Dictionary<string, JevAnswer>
+            Model = "typesafe/jev-1.14", Answers = new Dictionary<string, DecisionsAnswer>
             {
                 ["target"] = new BoxAnswer { Box = bounds, Confidence = 0.9 },
                 ["visible"] = new NoulAnswer { Noul = 0.95 }
@@ -117,7 +117,7 @@ public sealed class ImageDemoChecks
             }
         });
         try { await client.EvaluateAsync(request); }
-        catch (JevApiException error) when (error.StatusCode == HttpStatusCode.BadRequest && error.ResponseBody == "fixture") { return; }
+        catch (DecisionsApiException error) when (error.StatusCode == HttpStatusCode.BadRequest && error.ResponseBody == "fixture") { return; }
         throw new Exception("Expected fixture response");
     }
 

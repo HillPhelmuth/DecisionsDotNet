@@ -75,7 +75,7 @@ namespace JevDotNet.Demo.Components.Pages
             {
                 if (ActiveSlug == slug) ErrorMessage = "The request timed out. Try again.";
             }
-            catch (JevApiException error)
+            catch (DecisionsApiException error)
             {
                 if (ActiveSlug == slug) ErrorMessage = error.StatusCode switch
                 {
@@ -121,8 +121,8 @@ namespace JevDotNet.Demo.Components.Pages
             part.Length == 0 ? part : char.ToUpperInvariant(part[0]) + part[1..]));
         private static string QuestionType(DecisionsQuestion question) => question switch { ChoiceQuestion => "CHOICE", ScoreQuestion => "SCORE", _ => "NOUL" };
         private static string QuestionClass(DecisionsQuestion question) => question switch { ChoiceQuestion => "choice", ScoreQuestion => "score", _ => "noul" };
-        private static string AnswerType(JevAnswer answer) => answer switch { ChoiceAnswer => "CHOICE", ScoreAnswer => "SCORE", _ => "NOUL" };
-        private static string AnswerClass(JevAnswer answer) => answer switch { ChoiceAnswer => "choice", ScoreAnswer => "score", _ => "noul" };
+        private static string AnswerType(DecisionsAnswer answer) => answer switch { ChoiceAnswer => "CHOICE", ScoreAnswer => "SCORE", _ => "NOUL" };
+        private static string AnswerClass(DecisionsAnswer answer) => answer switch { ChoiceAnswer => "choice", ScoreAnswer => "score", _ => "noul" };
         private static int Percent(double value) => (int)Math.Round(Math.Clamp(value, 0, 1) * 100);
         private static string WidthStyle(double value) => $"width: {Percent(value)}%";
     }

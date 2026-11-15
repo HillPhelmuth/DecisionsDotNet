@@ -25,7 +25,7 @@ public sealed class DecisionModelsRefreshService(
             {
                 try { await RefreshAsync(stoppingToken); }
                 catch (Exception error) when (!stoppingToken.IsCancellationRequested &&
-                    error is JevApiException or HttpRequestException or JsonException or OperationCanceledException)
+                    error is DecisionsApiException or HttpRequestException or JsonException or OperationCanceledException)
                 {
                     logger.LogWarning(error, "Could not refresh Decisions models; retaining the previous catalog.");
                 }

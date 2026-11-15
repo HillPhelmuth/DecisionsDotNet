@@ -33,7 +33,7 @@ public sealed class JevClientTests
             };
         });
 
-        using (var client = new JevClient("test-key", new HttpClient(handler)))
+        using (var client = new TypeSafeDecisionsClient("test-key", new HttpClient(handler)))
         {
             var request = new DecisionsRequest(
                 DecisionsValue.FromObject(new { message = "Help" }),
@@ -45,7 +45,7 @@ public sealed class JevClientTests
                         ["billing"] = "Payment questions", ["other"] = null
                     }),
                     ["severity"] = new ScoreQuestion("How severe?", new DecisionsValue[] { "Calm", "Angry" })
-                });
+                }, TypeSafeDecisionsClient.DefaultModel);
             var result = await client.EvaluateAsync(request);
             Assert.True(result.Model == "jev-1.13.0", "Resolved model");
             Assert.True(result.GetAnswer<NoulAnswer>("urgent").Noul == 0.95, "Typed Noul answer");
@@ -60,13 +60,13 @@ public sealed class JevClientTests
     public async Task ListModelsAsyncRetriesRateLimitedRequests()
     {
         var retryCalls = 0;
-        using (var client = new JevClient("test-key", new HttpClient(new StubHandler(_ =>
+        using (var client = new TypeSafeDecisionsClient("test-key", new HttpClient(new StubHandler(_ =>
         {
             retryCalls++;
             return retryCalls == 1
                 ? new HttpResponseMessage((HttpStatusCode)429) { Content = new StringContent("rate limited") }
                 : new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("{\"models\":[{\"name\":\"jev-latest\",\"description\":\"Stable\",\"release_date\":\"2026-09-15\"}]}") };
-        })), new JevClientOptions { InitialRetryDelay = TimeSpan.Zero, MaxRetryDelay = TimeSpan.Zero }))
+        })), new TypeSafeDecisionsClientOptions { InitialRetryDelay = TimeSpan.Zero, MaxRetryDelay = TimeSpan.Zero }))
         {
             var models = await client.ListModelsAsync();
             Assert.True(retryCalls == 2 && models.Models[0].Name == "jev-latest", "Retry and model listing");
@@ -76,10 +76,10 @@ public sealed class JevClientTests
     [Fact]
     public async Task ListModelsAsyncPreservesApiErrorDetails()
     {
-        using (var client = new JevClient("test-key", new HttpClient(new StubHandler(_ =>
+        using (var client = new TypeSafeDecisionsClient("test-key", new HttpClient(new StubHandler(_ =>
             new HttpResponseMessage(HttpStatusCode.UnprocessableEntity) { Content = new StringContent("bad criteria") }))))
         {
-            var error = await Assert.ThrowsAsync<JevApiException>(() => client.ListModelsAsync());
+            var error = await Assert.ThrowsAsync<DecisionsApiException>(() => client.ListModelsAsync());
             Assert.Equal(HttpStatusCode.UnprocessableEntity, error.StatusCode);
             Assert.Equal("bad criteria", error.ResponseBody);
         }
@@ -88,7 +88,7 @@ public sealed class JevClientTests
     [Fact]
     public async Task EvaluateAsyncRejectsMismatchedAnswerTypes()
     {
-        using (var client = new JevClient("test-key", new HttpClient(new StubHandler(_ =>
+        using (var client = new TypeSafeDecisionsClient("test-key", new HttpClient(new StubHandler(_ =>
             new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent("{\"model\":\"jev-1.13.0\",\"answers\":{\"urgent\":{\"type\":\"choice\",\"choice\":\"yes\",\"probabilities\":{\"yes\":1},\"confidence\":1}},\"usage\":{\"input_tokens\":1,\"output_tokens\":1}}")
@@ -98,7 +98,7 @@ public sealed class JevClientTests
                 new DecisionsRequest("test", new Dictionary<string, DecisionsQuestion>
                 {
                     ["urgent"] = new NoulQuestion("Urgent?")
-                })));
+                }, TypeSafeDecisionsClient.DefaultModel)));
         }
     }
 }

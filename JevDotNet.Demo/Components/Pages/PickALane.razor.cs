@@ -116,11 +116,11 @@ public partial class PickALane
             }
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
-        catch (Exception error) when (error is JevApiException or HttpRequestException or JsonException or InvalidOperationException or KeyNotFoundException or JSException)
+        catch (Exception error) when (error is DecisionsApiException or HttpRequestException or JsonException or InvalidOperationException or KeyNotFoundException or JSException)
         {
             if (Active(id))
             {
-                Error = error is JevApiException api ? api.StatusCode switch
+                Error = error is DecisionsApiException api ? api.StatusCode switch
                 {
                     HttpStatusCode.Unauthorized => "OpenRouter rejected the API key. Check OpenRouter:ApiKey.",
                     HttpStatusCode.PaymentRequired => "OpenRouter reports insufficient credits.",

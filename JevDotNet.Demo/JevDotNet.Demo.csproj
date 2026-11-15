@@ -14,7 +14,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ExtractionsDotNet\ExtractionsDotNet.csproj" />
-    <ProjectReference Include="..\JevDotNet\JevDotNet.csproj" />
+    <ProjectReference Include="..\DecisionsDotNet\DecisionsDotNet.csproj" />
     <PackageReference Include="Microsoft.Agents.AI" Version="1.22.0" />
     <PackageReference Include="Microsoft.Agents.AI.OpenAI" Version="1.22.0" />
     <Content Update="Data\table-data.json" CopyToOutputDirectory="PreserveNewest" />

@@ -44,10 +44,10 @@ public sealed class JevEndpointChecks
                     {"model":"jev-latest","answers":{"urgent":{"type":"noul","noul":0.9}},"usage":{"input_tokens":5,"output_tokens":1}}
                     """);
             }));
-            using var client = new JevClient("local-key", http, new JevClientOptions { BaseUri = baseUri });
+            using var client = new TypeSafeDecisionsClient("local-key", http, new TypeSafeDecisionsClientOptions { BaseUri = baseUri });
             var response = await client.EvaluateAsync(new DecisionsRequest(
                 DecisionsValue.FromObject(new { message = "Help" }),
-                new Dictionary<string, DecisionsQuestion> { ["urgent"] = new NoulQuestion("Is this urgent?") }));
+                new Dictionary<string, DecisionsQuestion> { ["urgent"] = new NoulQuestion("Is this urgent?") }, TypeSafeDecisionsClient.DefaultModel));
             Assert.True(response.GetAnswer<NoulAnswer>("urgent").Noul == 0.9, "Custom endpoint typed answer");
             Assert.True(response.Usage.InputTokens == 5, "Custom endpoint usage");
             var models = await client.ListModelsAsync();
@@ -59,7 +59,7 @@ public sealed class JevEndpointChecks
         {
             try
             {
-                using var client = new JevClient("local-key", options: new JevClientOptions { BaseUri = invalid! });
+                using var client = new TypeSafeDecisionsClient("local-key", options: new TypeSafeDecisionsClientOptions { BaseUri = invalid! });
                 throw new Exception("Expected invalid base URI rejection");
             }
             catch (ArgumentException error)

@@ -93,9 +93,9 @@ public sealed class OpenAIChecks
         try
         {
             await failing.EvaluateAsync(DecisionsRequest.Create("x").Noul("ok", "OK?").Build("jev-latest"));
-            throw new Exception("Expected JevApiException");
+            throw new Exception("Expected DecisionsApiException");
         }
-        catch (JevApiException error)
+        catch (DecisionsApiException error)
         {
             Assert.True(error.Service == "OpenAI" && error.ResponseBody == "bad model", "OpenAI error details");
         }

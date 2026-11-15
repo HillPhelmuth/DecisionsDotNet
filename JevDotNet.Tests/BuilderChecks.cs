@@ -34,7 +34,7 @@ public sealed class BuilderChecks
         ExpectArgument(() => DecisionsRequest.Create("x").Noul("a", "A?").Noul("a", "Again?"), "Duplicate question ID");
         ExpectArgument(() => DecisionsRequest.Create("x").Noul(" ", "A?"), "Blank question ID");
         ExpectArgument(() => DecisionsRequest.Create("x").Choice("c", "C?", ("a", null), ("a", null)), "Duplicate choice option");
-        ExpectArgument(() => DecisionsRequest.Create("x").Build(), "No questions");
+        ExpectArgument(() => DecisionsRequest.Create("x").Build(TypeSafeDecisionsClient.DefaultModel), "No questions");
 
         var response = JsonSerializer.Deserialize<DecisionsResponse>("""
             {"model":"jev-1.14.0","answers":{
@@ -49,7 +49,31 @@ public sealed class BuilderChecks
         Assert.True(response.TryGetAnswer<NoulAnswer>("urgent", out var found) && found.Noul == 0.9, "TryGetAnswer hit");
         Assert.True(!response.TryGetAnswer<ChoiceAnswer>("urgent", out _) && !response.TryGetAnswer<NoulAnswer>("missing", out _),
             "TryGetAnswer type mismatch and miss");
+        Assert.True(response.TryGet(urgent, out var keyed) && keyed.Noul == 0.9, "TryGet hit");
+        Assert.True(!response.TryGet(new DecisionKey<ChoiceAnswer>("urgent"), out _) &&
+            !response.TryGet(new DecisionKey<NoulAnswer>("missing"), out _), "TryGet type mismatch and miss");
         await Task.CompletedTask;
+    }
+
+    [Fact]
+    public void ApiExceptionIsAnHttpRequestExceptionWithProviderDetail()
+    {
+        var error = new DecisionsApiException(HttpStatusCode.TooManyRequests, "slow down", "OpenRouter");
+        HttpRequestException http = error;
+        Assert.Equal(HttpStatusCode.TooManyRequests, error.StatusCode);
+        Assert.Equal(HttpStatusCode.TooManyRequests, http.StatusCode);
+        Assert.Equal("slow down", error.ResponseBody);
+        Assert.Equal("OpenRouter", error.Service);
+        Assert.Contains("429", error.Message);
+    }
+
+    [Fact]
+    public void RequestsRequireAnExplicitModel()
+    {
+        var questions = new Dictionary<string, DecisionsQuestion> { ["ok"] = new NoulQuestion("OK?") };
+        Assert.Throws<ArgumentException>(() => new DecisionsRequest("x", questions, " "));
+        Assert.Equal("jev-latest", new DecisionsRequest("x", questions, TypeSafeDecisionsClient.DefaultModel).Model);
+        Assert.Equal("gpt-6-luna", OpenAIDecisionsClient.DefaultModel);
     }
 
     private static void ExpectArgument(Action action, string name)

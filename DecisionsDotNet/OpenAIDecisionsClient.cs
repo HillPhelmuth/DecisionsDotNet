@@ -6,7 +6,7 @@ using System.Text.Json.Nodes;
 
 namespace DecisionsDotNet;
 
-public sealed class OpenAIDecisionsClientOptions
+public sealed class OpenAIDecisionsClientOptions : DecisionsClientOptions
 {
     /// <summary>Absolute HTTPS service root. Evaluations go to v1/decisions under it.</summary>
     public Uri BaseUri { get; init; } = new("https://api.openai.com/");
@@ -14,9 +14,6 @@ public sealed class OpenAIDecisionsClientOptions
     public string? Organization { get; init; }
     /// <summary>Sent as OpenAI-Project when set.</summary>
     public string? Project { get; init; }
-    public int MaxAttempts { get; init; } = 3;
-    public TimeSpan InitialRetryDelay { get; init; } = TimeSpan.FromSeconds(1);
-    public TimeSpan MaxRetryDelay { get; init; } = TimeSpan.FromSeconds(30);
 }
 
 /// <summary>
@@ -26,7 +23,7 @@ public sealed class OpenAIDecisionsClientOptions
 public sealed class OpenAIDecisionsClient : IDecisionsClient, IDisposable
 {
     /// <summary>The model OpenAI's Decisions API supports. Pass it as the request model.</summary>
-    public const string DefaultModel = "gpt-6-luna";
+    public static string DefaultModel => "gpt-6-luna";
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private static readonly IReadOnlySet<int> RetryableStatusCodes = new HashSet<int> { 429, 500, 502, 503, 504 };
@@ -43,7 +40,7 @@ public sealed class OpenAIDecisionsClient : IDecisionsClient, IDisposable
         _options = options ?? new OpenAIDecisionsClientOptions();
         if (_options.BaseUri is null || !_options.BaseUri.IsAbsoluteUri || _options.BaseUri.Scheme != Uri.UriSchemeHttps)
             throw new ArgumentException("BaseUri must be an absolute HTTPS URI.", nameof(options));
-        _retry = new RetryPolicy(_options.MaxAttempts, _options.InitialRetryDelay, _options.MaxRetryDelay, RetryableStatusCodes);
+        _retry = RetryPolicy.From(_options, RetryableStatusCodes);
         _retry.Validate(nameof(options));
         _httpClient = httpClient ?? new HttpClient();
         _ownsHttpClient = httpClient is null;
@@ -149,7 +146,7 @@ public sealed class OpenAIDecisionsClient : IDecisionsClient, IDisposable
             model.ValueKind != JsonValueKind.String || string.IsNullOrWhiteSpace(model.GetString()))
             throw new JsonException("The OpenAI Decisions API returned an incomplete evaluation response.");
 
-        var mapped = new Dictionary<string, JevAnswer>(StringComparer.Ordinal);
+        var mapped = new Dictionary<string, DecisionsAnswer>(StringComparer.Ordinal);
         foreach (var answer in answers.EnumerateArray())
         {
             var name = answer.TryGetProperty("name", out var nameValue) && nameValue.ValueKind == JsonValueKind.String
@@ -177,7 +174,7 @@ public sealed class OpenAIDecisionsClient : IDecisionsClient, IDisposable
         };
     }
 
-    private static JevAnswer ReadAnswer(JsonElement answer, DecisionsQuestion question, string name)
+    private static DecisionsAnswer ReadAnswer(JsonElement answer, DecisionsQuestion question, string name)
     {
         var type = answer.TryGetProperty("type", out var typeValue) ? typeValue.GetString() : null;
         switch (type, question)

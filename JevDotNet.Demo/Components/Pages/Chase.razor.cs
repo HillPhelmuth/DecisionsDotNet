@@ -82,7 +82,7 @@ namespace JevDotNet.Demo.Components.Pages
                 }
             }
             catch (OperationCanceledException) when (token.IsCancellationRequested) { }
-            catch (JevApiException error)
+            catch (DecisionsApiException error)
             {
                 if (!token.IsCancellationRequested)
                     ErrorMessage = error.StatusCode switch

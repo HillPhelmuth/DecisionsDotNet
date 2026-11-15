@@ -70,7 +70,7 @@ public sealed class JudgeService(DemoEvaluationService evaluation, IWebHostEnvir
                     attempt = new(example, result);
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
-                catch (Exception error) when (error is JevApiException or HttpRequestException or JsonException or
+                catch (Exception error) when (error is DecisionsApiException or HttpRequestException or JsonException or
                     InvalidOperationException or ArgumentException or OperationCanceledException)
                 {
                     attempt = new(example, null, error is OperationCanceledException ? "The request timed out. Try again." : error.Message);

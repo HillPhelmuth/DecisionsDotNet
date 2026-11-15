@@ -53,7 +53,7 @@ public sealed class BoxChecks
                     ,"visible":{"type":"noul","noul":0.98}},"usage":{"input_tokens":290,"output_tokens":21}}
                     """) };
             }));
-            using var jev = new JevClient("key", http, new() { InitialRetryDelay = TimeSpan.Zero, MaxRetryDelay = TimeSpan.Zero });
+            using var jev = new TypeSafeDecisionsClient("key", http, new() { InitialRetryDelay = TimeSpan.Zero, MaxRetryDelay = TimeSpan.Zero });
             using var router = new OpenRouterDecisionsClient("key", http, new()
             {
                 InitialRetryDelay = TimeSpan.Zero, MaxRetryDelay = TimeSpan.Zero,
@@ -68,7 +68,7 @@ public sealed class BoxChecks
             Assert.True(answer.Box.Top == 0.25 && answer.Box.Bottom == 0.82 && answer.Box.Left == 0.44 &&
                 answer.Box.Right == 0.84 && answer.Confidence == 0.92, "Typed Box coordinates and confidence");
             Assert.True(response.GetAnswer<NoulAnswer>("visible").Noul == 0.98 && calls == 2, "Mixed Box and Noul request");
-            var roundTrip = JsonSerializer.Deserialize<JevAnswer>(JsonSerializer.Serialize<JevAnswer>(answer));
+            var roundTrip = JsonSerializer.Deserialize<DecisionsAnswer>(JsonSerializer.Serialize<DecisionsAnswer>(answer));
             Assert.True(roundTrip is BoxAnswer box && box == answer, "Box answer round trip");
         }
 
@@ -96,7 +96,7 @@ public sealed class BoxChecks
         {
             var fullImage = Answer.Replace("0.25", "0").Replace("0.82", "1").Replace("0.44", "0")
                 .Replace("0.84", "1").Replace("0.92", confidence);
-            var answer = JevResponseValidator.DeserializeAndValidate(Response(fullImage), questions).GetAnswer<BoxAnswer>("mug");
+            var answer = DecisionsResponseValidator.DeserializeAndValidate(Response(fullImage), questions).GetAnswer<BoxAnswer>("mug");
             Assert.True(answer.Box.Left == 0 && answer.Box.Right == 1, "Box accepts inclusive interval boundaries");
         }
 
@@ -106,9 +106,9 @@ public sealed class BoxChecks
             Assert.True(message.Headers.Contains("TypeSafe-Danger-Zone-Images"), "Box without image still enables required header");
             return new HttpResponseMessage(HttpStatusCode.BadRequest) { Content = new StringContent("Box requires an image") };
         }));
-        using var headerClient = new JevClient("key", headerHttp);
+        using var headerClient = new TypeSafeDecisionsClient("key", headerHttp);
         try { await headerClient.EvaluateAsync(new DecisionsRequest("no image", questions, "jev-preview")); }
-        catch (JevApiException error) when (error.StatusCode == HttpStatusCode.BadRequest && error.ResponseBody == "Box requires an image")
+        catch (DecisionsApiException error) when (error.StatusCode == HttpStatusCode.BadRequest && error.ResponseBody == "Box requires an image")
         { return; }
         throw new Exception("Expected provider Box validation error");
     }
@@ -121,7 +121,7 @@ public sealed class BoxChecks
 
     private static void ExpectProtocolError(string json, IReadOnlyDictionary<string, DecisionsQuestion> questions)
     {
-        try { JevResponseValidator.DeserializeAndValidate(json, questions); }
+        try { DecisionsResponseValidator.DeserializeAndValidate(json, questions); }
         catch (JsonException) { return; }
         throw new Exception("Expected invalid Box response to fail validation");
     }
