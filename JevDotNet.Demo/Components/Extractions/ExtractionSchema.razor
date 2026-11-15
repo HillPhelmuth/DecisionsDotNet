@@ -1,0 +1,30 @@
+@using ExtractionsDotNet
+
+<dl class="extraction-schema">
+    @foreach (var (name, field) in Fields)
+    {
+        <div @key="name">
+            <dt><code>@name</code> <span class="extraction-type">@FieldType(field)</span></dt>
+            <dd>@field.Instructions</dd>
+        </div>
+    }
+</dl>
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyDictionary<string, ExtractionField> Fields { get; set; } = default!;
+
+    private static string FieldType(ExtractionField field) => field switch
+    {
+        TextField => "text",
+        NumberField => "number",
+        DateField => "date",
+        TimeField => "time",
+        DateTimeField => "datetime",
+        DurationField => "duration",
+        ListField list => $"list · {list.Items.ToString().ToLowerInvariant()}",
+        EstimateField => "estimate",
+        ForecastField => "forecast",
+        _ => throw new ArgumentOutOfRangeException(nameof(field))
+    };
+}

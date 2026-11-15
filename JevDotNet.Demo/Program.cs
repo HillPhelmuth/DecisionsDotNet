@@ -10,6 +10,8 @@ builder.Services.AddRazorComponents()
 builder.Services.AddHttpClient(DecisionModelsRefreshService.HttpClientName, client =>
     client.Timeout = TimeSpan.FromSeconds(30));
 builder.Services.AddHostedService<DecisionModelsRefreshService>();
+builder.Services.AddHttpClient(ExtractionDemoService.HttpClientName);
+builder.Services.AddScoped<ExtractionDemoService>();
 if (!string.IsNullOrWhiteSpace(builder.Configuration["OpenRouter:ApiKey"]))
 {
     builder.Services.AddOpenRouterDecisionsClient(builder.Configuration);

@@ -1,0 +1,17 @@
+@page "/extractions/permit"
+@layout ExtractionLayout
+@using JevDotNet.Demo.Components.Extractions
+@using JevDotNet.Demo.Services
+
+<ExtractionWorkspace Title="Permit Desk"
+                     Description="Pull the ID, issuing office, and approved activities from a one-page PDF. The sample omits the emergency phone number."
+                     Demo="ExtractionDemoCatalog.Permit" Sample="ExtractionDemoCatalog.PermitFile">
+    <figure class="extraction-document">
+        <img class="extraction-preview" src="extraction-samples/north-ridge-permit.png" width="845" height="860"
+             alt="One-page North Ridge Expedition Permit NR-P-2048, issued by High Basin Ranger Office for trail surveying, water sampling, and wildlife photography." />
+        <figcaption>
+            <a href="@ExtractionDemoCatalog.PermitFile.Path" target="_blank" rel="noopener">Open PDF ↗</a>
+            <a href="@ExtractionDemoCatalog.PermitFile.Path" download>Download PDF ↓</a>
+        </figcaption>
+    </figure>
+</ExtractionWorkspace>

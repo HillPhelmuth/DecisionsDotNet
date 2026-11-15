@@ -1,0 +1,31 @@
+@page "/extractions/cargo-tag"
+@layout ExtractionLayout
+@using JevDotNet.Demo.Components.Extractions
+@using JevDotNet.Demo.Services
+
+<ExtractionWorkspace Title="Cargo Tag"
+                     Description="Read the same printed label as PNG, JPEG, or WebP. The selected image is the one sent to the model."
+                     Demo="ExtractionDemoCatalog.CargoTag" Sample="SelectedSample">
+    <div class="extraction-select">
+        <label for="cargo-format">Image format</label>
+        <select id="cargo-format" @bind="_format">
+            @foreach (var sample in ExtractionDemoCatalog.CargoFormats)
+            {
+                <option value="@sample.FileName">@FormatLabel(sample)</option>
+            }
+        </select>
+    </div>
+    <img class="extraction-preview" src="@SelectedSample.Path" width="920" height="600"
+         alt="North Ridge cargo tag. Crate NR-417 weighs 18.75 kg and was inspected on 2026-07-14. Contents: ropes, flags, and filters." />
+</ExtractionWorkspace>
+
+@code {
+    private string _format = ExtractionDemoCatalog.CargoFormats[0].FileName;
+
+    private ExtractionDemoAsset SelectedSample =>
+        ExtractionDemoCatalog.CargoFormats.FirstOrDefault(sample => sample.FileName == _format)
+        ?? ExtractionDemoCatalog.CargoFormats[0];
+
+    private static string FormatLabel(ExtractionDemoAsset sample) =>
+        sample.Format == ExtractionsDotNet.ExtractionAssetFormat.Webp ? "WebP" : sample.Format.ToString().ToUpperInvariant();
+}

@@ -1,0 +1,40 @@
+@page "/extractions"
+@layout ExtractionLayout
+
+<PageTitle>Extractions Lab · ExtractionsDotNet</PageTitle>
+
+<header class="extraction-hero">
+    <h1>Extractions Lab</h1>
+    <p>Read a dispatch, a cargo tag, and a permit from the North Ridge expedition. See how ExtractionsDotNet turns each source into fields your code can use.</p>
+</header>
+
+<div class="extraction-cards">
+    <a class="extraction-card" href="extractions/dispatch">
+        <span class="extraction-type">Text</span>
+        <h2>Expedition Dispatch</h2>
+        <p>Edit the field report, extract the itinerary, and forecast water use for the next three days.</p>
+        <span class="extraction-link">Read the dispatch →</span>
+    </a>
+    <a class="extraction-card" href="extractions/cargo-tag">
+        <span class="extraction-type">PNG · JPEG · WebP</span>
+        <h2>Cargo Tag</h2>
+        <p>Read the crate ID, weight, inspection date, and contents from a printed label.</p>
+        <span class="extraction-link">Inspect the tag →</span>
+    </a>
+    <a class="extraction-card" href="extractions/permit">
+        <span class="extraction-type">PDF</span>
+        <h2>Permit Desk</h2>
+        <p>Find the issuing office and approved activities. Check how a missing field is reported.</p>
+        <span class="extraction-link">Review the permit →</span>
+    </a>
+</div>
+
+<section class="extraction-panel extraction-coverage">
+    <h2>Field coverage</h2>
+    <dl>
+        <div><dt>Text and number</dt><dd>Expedition name and supply count in the dispatch, crate ID and weight on the tag.</dd></div>
+        <div><dt>Date, time, datetime, duration</dt><dd>Departure date, radio check, timestamp with offset, and travel hours in the dispatch.</dd></div>
+        <div><dt>List of text, numbers, or dates</dt><dd>Crew names, daily water use, and resupply dates in the dispatch. The tag and permit also return text lists.</dd></div>
+        <div><dt>Estimate and forecast</dt><dd>One estimate for tomorrow’s water use and a forecast for each of the next three days.</dd></div>
+    </dl>
+</section>

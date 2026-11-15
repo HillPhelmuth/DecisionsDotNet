@@ -1,8 +1,11 @@
 @using JevDotNet.Demo.Services
 
-<div class="brand"><span class="brand-mark">D<span>•</span></span><div><strong>DecisionsDotNet</strong><small>MODEL SHOWCASE</small></div></div>
+<div class="brand">
+    <span class="brand-mark" aria-hidden="true">@(InExtractions ? "E" : "D")</span>
+    <div><strong>@(InExtractions ? "ExtractionsDotNet" : "DecisionsDotNet")</strong><small>@(InExtractions ? "EXTRACTIONS LAB" : "MODEL SHOWCASE")</small></div>
+</div>
 <nav aria-label="Main navigation">
-    <div class="nav-label">EXPLORE</div>
+    <div class="nav-label">DECISIONS</div>
     <NavLink class="nav-link" href="" Match="NavLinkMatch.All"><span class="nav-symbol">⌂</span> Overview</NavLink>
     @foreach (var scenario in DemoScenarioCatalog.All)
     {
@@ -15,4 +18,13 @@
     <NavLink class="nav-link" href="game"><span class="nav-symbol">◎</span> Live chase</NavLink>
     <NavLink class="nav-link" href="pick-a-lane"><span class="nav-symbol">⇈</span> Pick a lane</NavLink>
     <NavLink class="nav-link" href="platform-race"><span class="nav-symbol">↟</span> Platform Race</NavLink>
+    <div class="nav-label extraction-nav-label">EXTRACTIONS</div>
+    <NavLink class="nav-link extraction-nav-link" href="extractions" Match="NavLinkMatch.All">Extractions Lab</NavLink>
+    <NavLink class="nav-link extraction-nav-link" href="extractions/dispatch">Expedition Dispatch</NavLink>
+    <NavLink class="nav-link extraction-nav-link" href="extractions/cargo-tag">Cargo Tag</NavLink>
+    <NavLink class="nav-link extraction-nav-link" href="extractions/permit">Permit Desk</NavLink>
 </nav>
+
+@code {
+    [Parameter] public bool InExtractions { get; set; }
+}

@@ -1,0 +1,116 @@
+@using ExtractionsDotNet
+@using System.Globalization
+@using System.Text
+
+@switch (Answer)
+{
+    case ExtractionListAnswer<string> list:
+        <ExtractionListResult TItem="string" List="list" SourceText="@SourceText" />
+        break;
+    case ExtractionListAnswer<double> list:
+        <ExtractionListResult TItem="double" List="list" SourceText="@SourceText" Unit="@Unit" />
+        break;
+    case ExtractionListAnswer<DateOnly> list:
+        <ExtractionListResult TItem="DateOnly" List="list" SourceText="@SourceText" />
+        break;
+    case ExtractionForecastAnswer<double> forecast:
+        <ExtractionForecastResult Forecast="forecast" Unit="@Unit" />
+        break;
+    default:
+        var (value, guess) = Scalar(Answer);
+        <p class="extraction-value">@Display(value, Unit)</p>
+        @if (value is ExtractionDateTime { Offset: null })
+        {
+            <p class="extraction-meta">No UTC offset returned.</p>
+        }
+        @if (value is null && guess is not null)
+        {
+            <p class="extraction-meta">Model guess: @Display(guess, Unit)</p>
+        }
+        @if (Answer is ExtractionEstimateAnswer<double> { P10: { } low, P90: { } high })
+        {
+            <p class="extraction-meta">P10–P90: @Display(low, null)–@Display(high, Unit)</p>
+        }
+        break;
+}
+
+<div class="extraction-meta extraction-answer-meta">
+    @if (Answer.Confidence is { } confidence)
+    {
+        <span>Confidence @confidence.ToString("P1")</span>
+    }
+    @if (Answer.NullProbability is { } nullProbability)
+    {
+        <span>Missing probability @nullProbability.ToString("P1")</span>
+    }
+    @if (!string.IsNullOrWhiteSpace(Answer.Source))
+    {
+        <span>Source: @Answer.Source</span>
+    }
+</div>
+
+@if (Excerpt(SourceText, Answer.Span) is { } excerpt)
+{
+    <blockquote class="extraction-excerpt">@excerpt</blockquote>
+}
+
+@code {
+    [Parameter, EditorRequired] public ExtractionAnswer Answer { get; set; } = default!;
+    [Parameter, EditorRequired] public ExtractionField Field { get; set; } = default!;
+    [Parameter] public string? SourceText { get; set; }
+
+    private string? Unit => Field switch
+    {
+        NumberField number => number.Unit,
+        ListField list => list.Unit,
+        RangeField range => range.Unit,
+        DurationField duration => (Answer as ExtractionDurationAnswer)?.Unit ?? duration.Unit?.ToString().ToLowerInvariant(),
+        _ => null
+    };
+
+    private static (object? Value, object? Guess) Scalar(ExtractionAnswer answer) => answer switch
+    {
+        ExtractionAnswer<string?> text => (text.Value, text.Guess),
+        ExtractionAnswer<double?> number => (number.Value, number.Guess),
+        ExtractionAnswer<DateOnly?> date => (date.Value, date.Guess),
+        ExtractionAnswer<TimeOnly?> time => (time.Value, time.Guess),
+        ExtractionAnswer<ExtractionDateTime?> dateTime => (dateTime.Value, dateTime.Guess),
+        _ => (null, null)
+    };
+
+    internal static string Display(object? value, string? unit)
+    {
+        var formatted = value switch
+        {
+            null => "Not found",
+            DateOnly date => date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+            TimeOnly time => time.ToString("HH:mm:ss", CultureInfo.InvariantCulture),
+            ExtractionDateTime { Offset: { } offset } stamp =>
+                new DateTimeOffset(stamp.LocalDateTime, offset).ToString("yyyy-MM-dd HH:mm:ss zzz", CultureInfo.InvariantCulture),
+            ExtractionDateTime stamp => stamp.LocalDateTime.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
+            double number => number.ToString("0.######", CultureInfo.InvariantCulture),
+            _ => value.ToString()!
+        };
+        return value is not null && !string.IsNullOrWhiteSpace(unit) ? $"{formatted} {unit}" : formatted;
+    }
+
+    internal static string? Excerpt(string? text, ExtractionSpan? span)
+    {
+        if (text is null || span is not { } range || range.Start < 0 || range.End <= range.Start || range.End > text.Length)
+            return null;
+
+        var index = 0;
+        var offset = 0;
+        var start = 0;
+        foreach (var rune in text.EnumerateRunes())
+        {
+            if (index == range.Start)
+                start = offset;
+            offset += rune.Utf16SequenceLength;
+            if (++index == range.End)
+                return text[start..offset];
+        }
+
+        return null;
+    }
+}
