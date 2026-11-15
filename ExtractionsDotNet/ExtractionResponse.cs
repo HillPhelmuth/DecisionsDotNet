@@ -38,9 +38,11 @@ public sealed record ExtractionResponse(
     {
         if (Nullable.GetUnderlyingType(type) is { } underlying)
             return TypeName(underlying) + "?";
-        if (!type.IsGenericType)
+        // A non-generic type nested in a generic one is generic too, but has no arity suffix in its name.
+        var tick = type.Name.IndexOf('`');
+        if (!type.IsGenericType || tick < 0)
             return type.Name;
-        var name = type.Name[..type.Name.IndexOf('`')];
+        var name = type.Name[..tick];
         return $"{name}<{string.Join(", ", type.GetGenericArguments().Select(TypeName))}>";
     }
 
