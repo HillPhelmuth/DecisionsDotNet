@@ -21,7 +21,7 @@ else
             @for (var index = 0; index < count; index++)
             {
                 var step = Forecast.Steps?.ElementAtOrDefault(index);
-                var value = step is not null ? step.Value : ValueAt(Forecast.Value, index);
+                var value = step?.Value ?? ValueAt(Forecast.Value, index);
                 var low = step?.P10 ?? ValueAt(Forecast.P10, index);
                 var high = step?.P90 ?? ValueAt(Forecast.P90, index);
                 <div>
