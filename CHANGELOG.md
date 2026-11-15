@@ -4,6 +4,8 @@
 
 ## Unreleased: 1.0.0
 
+`1.0.0-rc.1` is the release candidate for all three packages. Install it with `--prerelease`. If nothing turns up, 1.0.0 ships with the same API.
+
 The first stable release. It renames the remaining `Jev` types, makes a few shapes explicit, and brings `ExtractionsDotNet` level with the Decisions packages. Everything below is a change from 0.3.0-preview.
 
 ### DecisionsDotNet: migrating from 0.3
