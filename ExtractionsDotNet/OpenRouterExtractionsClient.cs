@@ -8,9 +8,11 @@ namespace ExtractionsDotNet;
 /// <summary>Extracts typed fields from text, images, and documents through a configured provider.</summary>
 public interface IExtractionsClient
 {
+    /// <summary>Sends the request and returns one typed answer per requested field.</summary>
     Task<ExtractionResponse> ExtractAsync(ExtractionRequest request, CancellationToken cancellationToken = default);
 }
 
+/// <summary>The base URI and retry settings for <see cref="OpenRouterExtractionsClient"/>.</summary>
 public sealed class OpenRouterExtractionsClientOptions
 {
     /// <summary>Absolute HTTPS origin serving OpenRouter's API routes.</summary>
@@ -39,6 +41,7 @@ public sealed class OpenRouterExtractionsClient : IExtractionsClient, IDisposabl
     private readonly bool _ownsHttpClient;
     private bool _disposed;
 
+    /// <summary>Creates a client.</summary>
     /// <param name="apiKey">An OpenRouter API key.</param>
     /// <param name="httpClient">An optional caller-owned client.</param>
     /// <param name="options">The base URI and retry settings. Defaults apply when omitted.</param>
@@ -51,6 +54,7 @@ public sealed class OpenRouterExtractionsClient : IExtractionsClient, IDisposabl
         _ownsHttpClient = httpClient is null;
     }
 
+    /// <summary>Creates a client using the <c>OPENROUTER_API_KEY</c> environment variable.</summary>
     public static OpenRouterExtractionsClient FromEnvironment(
         HttpClient? httpClient = null, OpenRouterExtractionsClientOptions? options = null)
     {
@@ -61,6 +65,10 @@ public sealed class OpenRouterExtractionsClient : IExtractionsClient, IDisposabl
         return new OpenRouterExtractionsClient(key, httpClient, options);
     }
 
+    /// <inheritdoc />
+    /// <exception cref="ArgumentException">The request has no fields, or has neither state text nor a single asset.</exception>
+    /// <exception cref="ExtractionsApiException">OpenRouter returned an HTTP error that was not retried or outlasted its retries.</exception>
+    /// <exception cref="System.Text.Json.JsonException">The response did not match the requested fields.</exception>
     public async Task<ExtractionResponse> ExtractAsync(
         ExtractionRequest request, CancellationToken cancellationToken = default)
     {
@@ -107,6 +115,7 @@ public sealed class OpenRouterExtractionsClient : IExtractionsClient, IDisposabl
         return ExtractionJson.ReadResponse(content, fields);
     }
 
+    /// <summary>Lists models serving the Extractions route, using this client's base URI and retry settings.</summary>
     public Task<IReadOnlyList<ExtractionModel>> ListModelsAsync(CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -133,6 +142,7 @@ public sealed class OpenRouterExtractionsClient : IExtractionsClient, IDisposabl
         return ExtractionJson.ReadModels(content);
     }
 
+    /// <summary>Disposes the HTTP client when this instance created it. A caller-supplied client is left alone.</summary>
     public void Dispose()
     {
         _disposed = true;
@@ -198,6 +208,7 @@ public sealed class OpenRouterExtractionsClient : IExtractionsClient, IDisposabl
 /// <summary>The Extractions provider answered with an HTTP error that was not retried, or that outlasted its retries.</summary>
 public sealed class ExtractionsApiException : HttpRequestException
 {
+    /// <summary>Creates the exception from the provider's status and response body.</summary>
     public ExtractionsApiException(HttpStatusCode statusCode, string responseBody, string service = "OpenRouter")
         : base($"{service} Extractions returned HTTP {(int)statusCode} ({statusCode}).", null, statusCode)
     {

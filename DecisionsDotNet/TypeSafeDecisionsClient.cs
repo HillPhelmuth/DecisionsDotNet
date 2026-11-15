@@ -4,6 +4,7 @@ using System.Text.Json;
 
 namespace DecisionsDotNet;
 
+/// <summary>The base URI, model capability overrides, and retry settings for <see cref="TypeSafeDecisionsClient"/>.</summary>
 public sealed class TypeSafeDecisionsClientOptions : DecisionsClientOptions
 {
     /// <summary>Absolute HTTP or HTTPS service root. Endpoint paths such as v1/systemone are appended to this URI.</summary>
@@ -28,6 +29,10 @@ public sealed class TypeSafeDecisionsClient : IDecisionsClient, IDisposable
     private readonly RetryPolicy _retry;
     private static readonly IReadOnlySet<int> RetryableStatusCodes = new HashSet<int> { 429, 529 };
 
+    /// <summary>Creates a client.</summary>
+    /// <param name="apiKey">A TypeSafe API key, or a placeholder for a local server without authentication.</param>
+    /// <param name="httpClient">An optional caller-owned client. When omitted, the client creates and disposes its own.</param>
+    /// <param name="options">The base URI, capability overrides, and retry settings. Defaults apply when omitted.</param>
     public TypeSafeDecisionsClient(string apiKey, HttpClient? httpClient = null, TypeSafeDecisionsClientOptions? options = null)
     {
         _apiKey = !string.IsNullOrWhiteSpace(apiKey) ? apiKey : throw new ArgumentException("An API key is required.", nameof(apiKey));
@@ -42,10 +47,16 @@ public sealed class TypeSafeDecisionsClient : IDecisionsClient, IDisposable
         _ownsHttpClient = httpClient is null;
     }
 
+    /// <summary>Creates a client using the <c>TYPESAFE_API_KEY</c> environment variable.</summary>
     public static TypeSafeDecisionsClient FromEnvironment(HttpClient? httpClient = null, TypeSafeDecisionsClientOptions? options = null)
         => new(Environment.GetEnvironmentVariable("TYPESAFE_API_KEY")
             ?? throw new InvalidOperationException("TYPESAFE_API_KEY is not set."), httpClient, options);
 
+    /// <inheritdoc />
+    /// <remarks>Image input on the direct TypeSafe API is experimental upstream; sending an image or a Box question opts the request into it.</remarks>
+    /// <exception cref="NotSupportedException">The request has images that the model is not known to accept, WebP images, or images outside the top-level state array.</exception>
+    /// <exception cref="DecisionsApiException">TypeSafe returned an HTTP error that was not retried or outlasted its retries.</exception>
+    /// <exception cref="System.Text.Json.JsonException">The response did not match the questions asked.</exception>
     public async Task<DecisionsResponse> EvaluateAsync(DecisionsRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -87,6 +98,7 @@ public sealed class TypeSafeDecisionsClient : IDecisionsClient, IDisposable
         return DecisionsResponseValidator.DeserializeAndValidate(response, request.Questions);
     }
 
+    /// <summary>Lists the models and aliases available to the account.</summary>
     public async Task<TypeSafeModelList> ListModelsAsync(CancellationToken cancellationToken = default)
     {
         var result = Deserialize<TypeSafeModelList>(
@@ -113,6 +125,7 @@ public sealed class TypeSafeDecisionsClient : IDecisionsClient, IDisposable
         => JsonSerializer.Deserialize<T>(json, JsonOptions)
            ?? throw new JsonException("TypeSafe returned an empty JSON response.");
 
+    /// <summary>Disposes the HTTP client when this instance created it. A caller-supplied client is left alone.</summary>
     public void Dispose()
     {
         if (_ownsHttpClient) _httpClient.Dispose();

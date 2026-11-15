@@ -372,8 +372,17 @@ public sealed class ExtractionsTests
         Assert.True(result.TryGetAnswer<ExtractionAnswer<string?>>("value", out var text) && text.Value == "x");
         Assert.False(result.TryGetAnswer<ExtractionAnswer<double?>>("value", out _));
         Assert.False(result.TryGetAnswer<ExtractionAnswer<string?>>("missing", out _));
-        Assert.Throws<InvalidOperationException>(() => result.GetNumber("value"));
+        var mismatch = Assert.Throws<InvalidOperationException>(() => result.GetNumber("value"));
+        Assert.Contains("is ExtractionAnswer<String>, not ExtractionAnswer<Double?>", mismatch.Message);
+        var nested = Assert.Throws<InvalidOperationException>(() => result.GetAnswer<Holder<int>.Answer>("value"));
+        Assert.Contains("not Answer", nested.Message);
         Assert.Throws<KeyNotFoundException>(() => result.GetText("missing"));
+    }
+
+    // Generic by nesting, but its own name carries no arity suffix.
+    private static class Holder<T>
+    {
+        public sealed record Answer : ExtractionAnswer;
     }
 
     [Fact]
