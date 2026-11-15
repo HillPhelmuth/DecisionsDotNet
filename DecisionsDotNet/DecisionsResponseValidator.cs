@@ -2,7 +2,7 @@ using System.Text.Json;
 
 namespace DecisionsDotNet;
 
-internal static class JevResponseValidator
+internal static class DecisionsResponseValidator
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 

@@ -1,7 +1,7 @@
 namespace DecisionsDotNet;
 
 /// <summary>A question ID that remembers its answer type, for reading answers without casts.</summary>
-public readonly record struct DecisionKey<TAnswer>(string Id) where TAnswer : JevAnswer
+public readonly record struct DecisionKey<TAnswer>(string Id) where TAnswer : DecisionsAnswer
 {
     public override string ToString() => Id;
 }
@@ -108,6 +108,6 @@ public sealed class DecisionsRequestBuilder
         return Box(id, instructions);
     }
 
-    /// <summary>Creates the request. The builder can keep adding questions for later requests.</summary>
-    public DecisionsRequest Build(string model = "jev-latest") => new(_state, _questions, model);
+    /// <summary>Creates the request for a provider-specific model ID. The builder can keep adding questions for later requests.</summary>
+    public DecisionsRequest Build(string model) => new(_state, _questions, model);
 }

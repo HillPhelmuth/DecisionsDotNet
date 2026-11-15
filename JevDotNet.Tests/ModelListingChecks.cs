@@ -48,9 +48,9 @@ public sealed class ModelListingChecks
         try
         {
             await OpenRouterDecisionsClient.ListModelsAsync(failing);
-            throw new Exception("Expected JevApiException");
+            throw new Exception("Expected DecisionsApiException");
         }
-        catch (JevApiException error)
+        catch (DecisionsApiException error)
         {
             Assert.True(error.StatusCode == HttpStatusCode.Unauthorized && error.Service == "OpenRouter", "Listing error details");
         }

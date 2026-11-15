@@ -6,7 +6,7 @@ A type-safe C# client for TypeSafe AI's Jev models, through TypeSafe's direct AP
 dotnet add package DecisionsDotNet --prerelease
 ```
 
-The package ID and namespace are `DecisionsDotNet`. The repository and project folders keep their original `JevDotNet` names.
+The package ID and namespace are `DecisionsDotNet`. The repository, demo, and test project keep their original `JevDotNet` names.
 
 [ExtractionsDotNet](ExtractionsDotNet/README.md) is a standalone companion package for discovering OpenRouter extraction models and extracting typed fields from text, images, and PDFs.
 
@@ -17,7 +17,7 @@ Set `TYPESAFE_API_KEY` in your environment, then:
 ```csharp
 using DecisionsDotNet;
 
-using var client = JevClient.FromEnvironment();
+using var client = TypeSafeDecisionsClient.FromEnvironment();
 
 var request = new DecisionsRequest(
     DecisionsValue.FromObject(new { message = "My card was charged twice." }),
@@ -32,7 +32,8 @@ var request = new DecisionsRequest(
             }),
         ["frustration"] = new ScoreQuestion("How frustrated is the customer?",
             new DecisionsValue[] { "Calm", "Frustrated", "Very angry" })
-    });
+    },
+    TypeSafeDecisionsClient.DefaultModel);
 
 var response = await client.EvaluateAsync(request);
 double urgency = response.GetAnswer<NoulAnswer>("urgent").Noul;
@@ -53,33 +54,33 @@ var request = DecisionsRequest.Create(DecisionsValue.FromObject(new { message = 
         ("technical", "Bugs and outages"))
     .Score("frustration", "How frustrated is the customer?", out var frustration,
         "Calm", "Frustrated", "Very angry")
-    .Build();
+    .Build(TypeSafeDecisionsClient.DefaultModel);
 
 var response = await client.EvaluateAsync(request);
 Console.WriteLine($"{response.Get(team).Choice}, urgency {response.Get(urgent).Noul}, frustration {response.Get(frustration).Score}");
 ```
 
-`Noul` takes optional `whenTrue` and `whenFalse` criteria, `Choice` takes plain option names or `(option, description)` pairs, `Score` takes levels lowest first, and `Box` takes instructions only. Duplicate question IDs throw. `Build(model)` defaults to `jev-latest`. Use `response.TryGetAnswer<T>(id, out var answer)` when an answer may be absent or of another type.
+`Noul` takes optional `whenTrue` and `whenFalse` criteria, `Choice` takes plain option names or `(option, description)` pairs, `Score` takes levels lowest first, and `Box` takes instructions only. Duplicate question IDs throw. `Build(model)` takes the provider-specific model ID. Use `response.TryGet(key, out var answer)` or `response.TryGetAnswer<T>(id, out var answer)` when an answer may be absent or of another type.
 
 Plain text implicitly converts to `DecisionsValue`. For structured state, instructions, or criteria, use `DecisionsValue.FromObject(...)` or `DecisionsValue.FromArray(...)`. You can pass custom `JsonSerializerOptions` to those methods. Choice criteria may be `null` when an option needs no description.
 
-`DecisionsRequest` is shared by both clients. It defaults to `jev-latest` for the direct TypeSafe API; pass a model ID as its third argument to pin a version or to use OpenRouter. Use `ListModelsAsync()` to fetch direct model aliases available to your account. The response's `Model` property contains the model that answered.
+`DecisionsRequest` is shared by every client, and the model ID is always explicit because it differs by provider. `TypeSafeDecisionsClient.DefaultModel` is `jev-latest` for the direct TypeSafe API; pass another ID to pin a version or to use OpenRouter or OpenAI. Use `ListModelsAsync()` to fetch direct model aliases available to your account. The response's `Model` property contains the model that answered.
 
-The client retries HTTP 429 and 529 by default, honoring `Retry-After` up to the configured maximum delay. Configure `JevClientOptions` to change the base URI, number of attempts, or delays. Other HTTP failures throw `JevApiException` with `StatusCode` and `ResponseBody`. Cancellation is supported on both client methods. An injected `HttpClient` remains owned by the caller.
+The client retries HTTP 429 and 529 by default, honoring `Retry-After` up to the configured maximum delay. Configure `TypeSafeDecisionsClientOptions` to change the base URI, number of attempts, or delays. Other HTTP failures throw `DecisionsApiException`, an `HttpRequestException` with `StatusCode`, `ResponseBody`, and `Service`. Cancellation is supported on both client methods. An injected `HttpClient` remains owned by the caller.
 
 ### Local or custom endpoints
 
-Set `JevClientOptions.BaseUri` to an absolute HTTP or HTTPS service root:
+Set `TypeSafeDecisionsClientOptions.BaseUri` to an absolute HTTP or HTTPS service root:
 
 ```csharp
 using DecisionsDotNet;
 
-var options = new JevClientOptions
+var options = new TypeSafeDecisionsClientOptions
 {
     BaseUri = new Uri("http://localhost:1234/")
 };
 
-using var client = new JevClient("local-key", options: options);
+using var client = new TypeSafeDecisionsClient("local-key", options: options);
 ```
 
 Evaluation requests go to `http://localhost:1234/v1/systemone`, and `ListModelsAsync()` uses `http://localhost:1234/v1/models`. Supply the service root, not the full evaluation URL; include a trailing slash when the root contains a path prefix. HTTP also supports LAN addresses and container hostnames. The default remains `https://api.typesafe.ai/`.
@@ -87,26 +88,26 @@ Evaluation requests go to `http://localhost:1234/v1/systemone`, and `ListModelsA
 For dependency injection, pass the same options to either registration overload:
 
 ```csharp
-builder.Services.AddJevSystemOneClient("local-key", options);
-// Or: builder.Services.AddJevSystemOneClient(builder.Configuration, options);
+builder.Services.AddTypeSafeDecisionsClient("local-key", options);
+// Or: builder.Services.AddTypeSafeDecisionsClient(builder.Configuration, options);
 ```
 
 For a local server with default client settings, use the convenience registration:
 
 ```csharp
-builder.Services.AddLocalJevSystemOneClient(new Uri("http://localhost:1234/"));
+builder.Services.AddLocalTypeSafeDecisionsClient(new Uri("http://localhost:1234/"));
 // Supply apiKey: "your-key" if the server requires authentication.
 ```
 
-This registers `IDecisionsClient` and returns `IHttpClientBuilder` for HTTP pipeline configuration. It sends `local-key` as the default bearer key. Use `AddJevSystemOneClient` with options when you also need custom retry settings or model capability overrides.
+This registers `IDecisionsClient` and returns `IHttpClientBuilder` for HTTP pipeline configuration. It sends `local-key` as the default bearer key. Use `AddTypeSafeDecisionsClient` with options when you also need custom retry settings or model capability overrides.
 
-`JevClient.FromEnvironment(options: options)` also accepts the override. API keys remain required and are sent as bearer authorization; use a nonempty placeholder such as `local-key` if your local server does not require authentication. The server must implement the existing Jev request and response contract.
+`TypeSafeDecisionsClient.FromEnvironment(options: options)` also accepts the override. API keys remain required and are sent as bearer authorization; use a nonempty placeholder such as `local-key` if your local server does not require authentication. The server must implement the existing Jev request and response contract.
 
 ## Verify
 
 ```powershell
 dotnet test --project JevDotNet.Tests/JevDotNet.Tests.csproj
-dotnet pack JevDotNet/JevDotNet.csproj
+dotnet pack DecisionsDotNet/DecisionsDotNet.csproj
 ```
 
 The xUnit v3 contract tests use fake HTTP handlers and need no API key. The direct client follows the [TypeSafe AI API reference](https://docs.typesafe.ai/api) and [model listing reference](https://docs.typesafe.ai/models).
@@ -145,9 +146,9 @@ foreach (var model in models.Where(model => model.SupportsImageInput))
     Console.WriteLine($"{model.Id}: {model.Name}");
 ```
 
-Each `OpenRouterDecisionsModel` carries `Id`, `CanonicalSlug`, `Name`, `Description`, `Created`, and `InputModalities`. Listing retries like evaluation does and reports HTTP failures as `JevApiException`.
+Each `OpenRouterDecisionsModel` carries `Id`, `CanonicalSlug`, `Name`, `Description`, `Created`, and `InputModalities`. Listing retries like evaluation does and reports HTTP failures as `DecisionsApiException`.
 
-OpenRouter responses can also expose `Id`, `Provider`, and `Usage.Cost`; these are nullable because direct TypeSafe responses do not include them. The OpenRouter client retries HTTP 429, 502, 503, and 529 with bounded backoff. It surfaces other errors as `JevApiException` with `Service` set to `OpenRouter`. See the [OpenRouter Decisions reference](https://openrouter.ai/docs/api/api-reference/alphadecisions/submit-a-decisions-questions-and-answers-request).
+OpenRouter responses can also expose `Id`, `Provider`, and `Usage.Cost`; these are nullable because direct TypeSafe responses do not include them. The OpenRouter client retries HTTP 429, 502, 503, and 529 with bounded backoff. It surfaces other errors as `DecisionsApiException` with `Service` set to `OpenRouter`. See the [OpenRouter Decisions reference](https://openrouter.ai/docs/api/api-reference/alphadecisions/submit-a-decisions-questions-and-answers-request).
 
 ## OpenAI Decisions API
 
@@ -172,7 +173,7 @@ The client translates the request to OpenAI's shape and the answers back to the 
 | `BoxQuestion` | Not supported; throws `NotSupportedException`. |
 | (none) | `refusal` answers become `RefusalAnswer`. Reading one with `GetAnswer<NoulAnswer>` throws, so use `TryGetAnswer` when refusals are possible. |
 
-Text state is sent as the `input` string, and structured state as JSON text. State containing images becomes one user message with `input_text` and `input_image` parts in the original order. Like the other clients, images must be inline base64 data URLs. Set `OpenAIDecisionsClientOptions.Organization` or `Project` to send the matching headers. The client retries HTTP 429, 500, 502, 503, and 504 and reports other failures as `JevApiException` with `Service` set to `OpenAI`. Register it with `AddOpenAIDecisionsClient` (reads `OpenAI:ApiKey`) or `AddKeyedOpenAIDecisionsClient`.
+Text state is sent as the `input` string, and structured state as JSON text. State containing images becomes one user message with `input_text` and `input_image` parts in the original order. Like the other clients, images must be inline base64 data URLs. Set `OpenAIDecisionsClientOptions.Organization` or `Project` to send the matching headers. The client retries HTTP 429, 500, 502, 503, and 504 and reports other failures as `DecisionsApiException` with `Service` set to `OpenAI`. Register it with `AddOpenAIDecisionsClient` (reads `OpenAI:ApiKey`) or `AddKeyedOpenAIDecisionsClient`.
 
 ## Image inputs
 
@@ -190,7 +191,7 @@ var questions = new Dictionary<string, DecisionsQuestion>
 using var router = OpenRouterDecisionsClient.FromEnvironment();
 var result = await router.EvaluateAsync(new DecisionsRequest(state, questions, "cloudflare/clef-flash"));
 
-using var direct = JevClient.FromEnvironment();
+using var direct = TypeSafeDecisionsClient.FromEnvironment();
 var directResult = await direct.EvaluateAsync(new DecisionsRequest(state, questions, "jev-1.14.0"));
 ```
 
@@ -198,7 +199,7 @@ A standalone image value is normalized into a one-item state array. Images creat
 
 OpenRouter receives base64 `image_url` parts in `state`. Direct TypeSafe receives image references in state and a top-level `assets` map, and the SDK adds `TypeSafe-Danger-Zone-Images: true` to evaluations containing images or Box questions. PNG and JPEG work with both clients; WebP is accepted only through OpenRouter, subject to the selected provider's support. Remote image URLs, empty data, unsupported media types, and malformed base64 are rejected locally. See [OpenRouter's multimodal guide](https://openrouter.ai/docs/guides/community/multimodal-decisions) and [TypeSafe's image contract](https://docs.typesafe.ai/images).
 
-Prepare image dimensions, orientation, and compression before calling the SDK. It does not decode, resize, rotate, or fetch images. Image counts, dimensions, and request-size limits differ by provider and are validated by the server. Provider errors retain their status code and response body in `JevApiException`. Direct TypeSafe's image feature is experimental; using image input opts the request into its required header.
+Prepare image dimensions, orientation, and compression before calling the SDK. It does not decode, resize, rotate, or fetch images. Image counts, dimensions, and request-size limits differ by provider and are validated by the server. Provider errors retain their status code and response body in `DecisionsApiException`. Direct TypeSafe's image feature is experimental; using image input opts the request into its required header.
 
 ### Model capability overrides
 
@@ -216,7 +217,7 @@ var options = new OpenRouterDecisionsClientOptions
 using var client = OpenRouterDecisionsClient.FromEnvironment(options: options);
 ```
 
-Use the same property on `JevClientOptions` for direct models. The direct client recognizes image support for `jev-1.13.0`, `jev-1.14.0`, `jev-latest`, and `jev-preview`. Other IDs require an override before sending images. Direct requests without images retain native structured state for unresolved models; an explicit text-only override serializes structured state to JSON text. Overrides describe capabilities; they cannot add image support to a provider that lacks it.
+Use the same property on `TypeSafeDecisionsClientOptions` for direct models. The direct client recognizes image support for `jev-1.13.0`, `jev-1.14.0`, `jev-latest`, and `jev-preview`. Other IDs require an override before sending images. Direct requests without images retain native structured state for unresolved models; an explicit text-only override serializes structured state to JSON text. Overrides describe capabilities; they cannot add image support to a provider that lacks it.
 
 ### Box questions and answers
 
@@ -233,7 +234,7 @@ var request = new DecisionsRequest(
     },
     "jev-1.14.0");
 
-using var client = JevClient.FromEnvironment();
+using var client = TypeSafeDecisionsClient.FromEnvironment();
 var response = await client.EvaluateAsync(request);
 BoxAnswer mug = response.GetAnswer<BoxAnswer>("mug");
 double leftPixel = mug.Box.Left * imageWidth;
@@ -276,7 +277,7 @@ Requests run one after another. By default a failed request is reported through 
 
 ## Agents and chat tools
 
-The companion package `DecisionsDotNet.AI` (in `JevDotNet.AI/`) exposes any `IDecisionsClient` as a Microsoft.Extensions.AI `AIFunction`, so a chat client or Microsoft Agent Framework agent can call Jev, OpenRouter, or OpenAI Decisions as a tool. `AsAIFunction` asks a fixed set of questions about text the model supplies; `AsOpenDecisionsAIFunction` lets the model write its own yes/no, choice, and score questions. See [its README](JevDotNet.AI/README.md).
+The companion package `DecisionsDotNet.AI` (in `DecisionsDotNet.AI/`) exposes any `IDecisionsClient` as a Microsoft.Extensions.AI `AIFunction`, so a chat client or Microsoft Agent Framework agent can call Jev, OpenRouter, or OpenAI Decisions as a tool. `AsAIFunction` asks a fixed set of questions about text the model supplies; `AsOpenDecisionsAIFunction` lets the model write its own yes/no, choice, and score questions. See [its README](DecisionsDotNet.AI/README.md).
 
 ## Dependency injection
 
@@ -286,7 +287,7 @@ Register one provider, then inject `IDecisionsClient` into your service. Registr
 using DecisionsDotNet;
 
 builder.Services.AddOpenRouterDecisionsClient(builder.Configuration);
-// Or: builder.Services.AddJevSystemOneClient(builder.Configuration);
+// Or: builder.Services.AddTypeSafeDecisionsClient(builder.Configuration);
 // Both also accept a key string and optional provider-specific client options.
 
 public sealed class DecisionService(IDecisionsClient client)
@@ -296,17 +297,17 @@ public sealed class DecisionService(IDecisionsClient client)
 }
 ```
 
-The registration returns `IHttpClientBuilder` for HTTP pipeline configuration. Set `DecisionsRequest.Model` to an OpenRouter Decisions model ID, such as `"typesafe/jev-1.13"` or `"jaredpalmer/kev-4b"`; the request default `jev-latest` is for the direct TypeSafe API. Both concrete clients expose `ListModelsAsync()`.
+The registration returns `IHttpClientBuilder` for HTTP pipeline configuration. Set `DecisionsRequest.Model` to an OpenRouter Decisions model ID, such as `"typesafe/jev-1.13"` or `"jaredpalmer/kev-4b"`; `jev-latest` is only valid on the direct TypeSafe API. When several unkeyed registrations are made, the last one is injected. Both concrete clients expose `ListModelsAsync()`.
 
 ### Several providers side by side
 
 The registrations above replace one another, because each one registers the single `IDecisionsClient`. To use more than one provider in an app, register each under a key and inject it with `[FromKeyedServices]`:
 
 ```csharp
-builder.Services.AddKeyedJevSystemOneClient("typesafe", builder.Configuration);
+builder.Services.AddKeyedTypeSafeDecisionsClient("typesafe", builder.Configuration);
 builder.Services.AddKeyedOpenRouterDecisionsClient("openrouter", builder.Configuration);
-builder.Services.AddKeyedJevSystemOneClient("local", "local-key",
-    new JevClientOptions { BaseUri = new Uri("http://localhost:1234/") });
+builder.Services.AddKeyedTypeSafeDecisionsClient("local", "local-key",
+    new TypeSafeDecisionsClientOptions { BaseUri = new Uri("http://localhost:1234/") });
 
 public sealed class Comparison(
     [FromKeyedServices("typesafe")] IDecisionsClient direct,

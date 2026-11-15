@@ -12,7 +12,7 @@ public sealed class DecisionsValue
     private DecisionsValue(JsonElement value)
     {
         if (value.ValueKind is not (JsonValueKind.String or JsonValueKind.Object or JsonValueKind.Array))
-            throw new ArgumentException("A Jev value must be a JSON string, object, or array.", nameof(value));
+            throw new ArgumentException("A Decisions value must be a JSON string, object, or array.", nameof(value));
         _value = value.Clone();
     }
 

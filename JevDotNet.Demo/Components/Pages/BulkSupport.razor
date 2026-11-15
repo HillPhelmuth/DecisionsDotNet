@@ -90,7 +90,7 @@
     @if (Tab == 0)
     {
         <section id="panel-jev" role="tabpanel" aria-labelledby="tab-jev" class="workspace-panel bulk-results">
-            <div class="bulk-summary"><h2>@Run.JevModel · @Run.Jev.Count results</h2><span>Total model time <strong>@Duration(Run.JevTotal)</strong> · @Run.JevRequests.Count requests</span></div>
+            <div class="bulk-summary"><h2>@Run.TypeSafeModel · @Run.Jev.Count results</h2><span>Total model time <strong>@Duration(Run.JevTotal)</strong> · @Run.JevRequests.Count requests</span></div>
             <p class="bulk-help">Each row shows its Decisions request duration. Reference scores come from the supplied JSON.</p>
             @if (Run.Mode == JevBulkMode.Batched && Run.JevRequests.Count > 0)
             {

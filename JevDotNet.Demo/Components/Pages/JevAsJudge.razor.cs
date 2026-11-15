@@ -92,7 +92,7 @@ public partial class JevAsJudge
             if (!Disposed && !cancellation.IsCancellationRequested) { Result = result; Status = "Response judged."; }
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { if (!Disposed) Status = "Request cancelled."; }
-        catch (Exception error) when (error is JevApiException or HttpRequestException or JsonException or InvalidOperationException or OperationCanceledException)
+        catch (Exception error) when (error is DecisionsApiException or HttpRequestException or JsonException or InvalidOperationException or OperationCanceledException)
         {
             if (!Disposed) Error = error is OperationCanceledException ? "The request timed out. Try again." : error.Message;
         }

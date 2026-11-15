@@ -91,7 +91,7 @@ public sealed class PlatformRaceChecks
         public void Reply(string model, string target, decimal? cost) => replies[model].SetResult(new()
         {
             Model = model,
-            Answers = new Dictionary<string, JevAnswer>
+            Answers = new Dictionary<string, DecisionsAnswer>
             {
                 ["next_hop"] = new ChoiceAnswer { Choice = target, Confidence = 1, Probabilities = new Dictionary<string, double> { [target] = 1 } }
             },

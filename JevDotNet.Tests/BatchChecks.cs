@@ -27,7 +27,7 @@ public sealed class BatchChecks
         var client = new FakeClient(request =>
         {
             bodies.Add(JsonSerializer.SerializeToElement(request));
-            if (request.Questions.ContainsKey("m3_refund")) throw new JevApiException(HttpStatusCode.BadRequest, "too big", "OpenRouter");
+            if (request.Questions.ContainsKey("m3_refund")) throw new DecisionsApiException(HttpStatusCode.BadRequest, "too big", "OpenRouter");
             return Answer(request.Questions.Keys);
         });
 
@@ -42,21 +42,21 @@ public sealed class BatchChecks
         Assert.True(bodies[0].GetProperty("state").GetProperty("messages").GetArrayLength() == 2 &&
             bodies[0].GetProperty("model").GetString() == "typesafe/jev-1.14", "Batch state and model");
         Assert.True(results[0].Succeeded && results[0].GetAnswer<NoulAnswer>(messages[1], "angry").Noul == 0.25, "Per-item answer");
-        Assert.True(!results[1].Succeeded && results[1].Error is JevApiException, "Failed batch is reported");
+        Assert.True(!results[1].Succeeded && results[1].Error is DecisionsApiException, "Failed batch is reported");
         Assert.True(results[2].Succeeded, "Later batches continue after a failure");
         try { results[1].GetAnswer<NoulAnswer>(messages[2], "refund"); throw new Exception("Expected failure"); }
-        catch (InvalidOperationException error) when (error.InnerException is JevApiException) { }
+        catch (InvalidOperationException error) when (error.InnerException is DecisionsApiException) { }
 
         try
         {
             await foreach (var _ in client.EvaluateBatchesAsync(messages, new DecisionsBatchOptions<Message>
             {
-                ItemId = options.ItemId, State = options.State, Questions = options.Questions,
+                ItemId = options.ItemId, State = options.State, Questions = options.Questions, Model = options.Model,
                 ItemsPerRequest = 2, ContinueOnError = false
             })) { }
             throw new Exception("Expected the failure to propagate");
         }
-        catch (JevApiException) { }
+        catch (DecisionsApiException) { }
 
         try
         {
@@ -99,7 +99,7 @@ public sealed class BatchChecks
     private static DecisionsResponse Answer(IEnumerable<string> ids) => new()
     {
         Model = "jev-1.14.0",
-        Answers = ids.ToDictionary(id => id, id => (JevAnswer)new NoulAnswer { Noul = id.EndsWith("angry") ? 0.25 : 0.75 }),
+        Answers = ids.ToDictionary(id => id, id => (DecisionsAnswer)new NoulAnswer { Noul = id.EndsWith("angry") ? 0.25 : 0.75 }),
         Usage = new DecisionsUsage { InputTokens = 1, OutputTokens = 1 }
     };
 

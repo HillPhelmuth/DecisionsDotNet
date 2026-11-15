@@ -18,7 +18,7 @@ public sealed class BulkTriageRun(
 {
     public IReadOnlyList<BulkTriageMessage> Messages { get; } = messages;
     public JevBulkMode Mode { get; } = mode;
-    public string JevModel { get; } = DemoDecisionModels.RequireSupported(jevModel);
+    public string TypeSafeModel { get; } = DemoDecisionModels.RequireSupported(jevModel);
     public int BatchSize { get; } = mode switch
     {
         JevBulkMode.OneAtATime => 1,
@@ -56,7 +56,7 @@ public sealed class BulkTriageService(
             throw new ArgumentException("The run needs messages.", nameof(run));
 
         var messagesPerRequest = run.Mode == JevBulkMode.Batched ? run.BatchSize : 1;
-        var options = BulkTriageCatalog.JevBatchOptions(messagesPerRequest, run.JevModel);
+        var options = BulkTriageCatalog.JevBatchOptions(messagesPerRequest, run.TypeSafeModel);
         await foreach (var batch in decisionsClient!.EvaluateBatchesAsync(run.Messages, options, cancellationToken))
         {
             var first = batch.Items[0].Id;

@@ -15,7 +15,8 @@ public sealed class DecisionsBatchOptions<TItem>
     /// <summary>The questions to ask about one item, keyed by a short name that is the same for every item.</summary>
     public required Func<TItem, IReadOnlyDictionary<string, DecisionsQuestion>> Questions { get; init; }
 
-    public string Model { get; init; } = "jev-latest";
+    /// <summary>The provider-specific model ID sent with every request.</summary>
+    public required string Model { get; init; }
 
     /// <summary>Items per request, from 1 upward. Providers cap the questions per request, so size batches to fit.</summary>
     public int ItemsPerRequest { get; init; } = 10;
@@ -50,7 +51,7 @@ public sealed class DecisionsBatchResult<TItem>
     public bool Succeeded => Response is not null;
 
     /// <summary>Reads one item's answer to the question with the given key.</summary>
-    public TAnswer GetAnswer<TAnswer>(TItem item, string questionKey) where TAnswer : JevAnswer
+    public TAnswer GetAnswer<TAnswer>(TItem item, string questionKey) where TAnswer : DecisionsAnswer
         => (Response ?? throw new InvalidOperationException($"Request {Number} failed: {Error?.Message}", Error))
             .GetAnswer<TAnswer>(DecisionsBatch.QuestionId(_itemId(item), questionKey));
 }

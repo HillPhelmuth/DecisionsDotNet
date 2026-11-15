@@ -3,46 +3,50 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace DecisionsDotNet;
 
-/// <summary>Registers one Decisions provider behind <see cref="IDecisionsClient"/>.</summary>
-public static class ServiceCollectionsExtensions
+/// <summary>Registers Decisions providers behind <see cref="IDecisionsClient"/>.</summary>
+/// <remarks>
+/// The unkeyed <c>Add*DecisionsClient</c> methods all register <see cref="IDecisionsClient"/>, so when more than one is
+/// called the last registration is the one injected. Use the <c>AddKeyed*</c> methods to run several providers side by side.
+/// </remarks>
+public static class DecisionsServiceCollectionExtensions
 {
     /// <summary>Registers a Jev client using an HTTP or HTTPS service root, such as http://localhost:1234/.</summary>
     /// <param name="services">The service collection.</param>
     /// <param name="baseUri">The service root. The client appends v1/systemone and v1/models.</param>
     /// <param name="apiKey">The bearer API key, or a placeholder for servers without authentication.</param>
-    public static IHttpClientBuilder AddLocalJevSystemOneClient(
+    public static IHttpClientBuilder AddLocalTypeSafeDecisionsClient(
         this IServiceCollection services,
         Uri baseUri,
         string apiKey = "local-key")
     {
         ArgumentNullException.ThrowIfNull(baseUri);
-        return services.AddJevSystemOneClient(apiKey, new JevClientOptions { BaseUri = baseUri });
+        return services.AddTypeSafeDecisionsClient(apiKey, new TypeSafeDecisionsClientOptions { BaseUri = baseUri });
     }
 
-    public static IHttpClientBuilder AddJevSystemOneClient(
+    public static IHttpClientBuilder AddTypeSafeDecisionsClient(
         this IServiceCollection services,
         string apiKey,
-        JevClientOptions? options = null)
+        TypeSafeDecisionsClientOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(services);
         if (string.IsNullOrWhiteSpace(apiKey))
             throw new ArgumentException("A TypeSafe API key is required.", nameof(apiKey));
 
-        return services.AddHttpClient("JevDotNet.TypeSafe")
-            .AddTypedClient<IDecisionsClient>((httpClient, _) => new JevClient(apiKey, httpClient, options));
+        return services.AddHttpClient("DecisionsDotNet.TypeSafe")
+            .AddTypedClient<IDecisionsClient>((httpClient, _) => new TypeSafeDecisionsClient(apiKey, httpClient, options));
     }
 
-    public static IHttpClientBuilder AddJevSystemOneClient(
+    public static IHttpClientBuilder AddTypeSafeDecisionsClient(
         this IServiceCollection services,
         IConfiguration configuration,
-        JevClientOptions? options = null)
+        TypeSafeDecisionsClientOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(configuration);
         var apiKey = configuration["TypeSafe:ApiKey"];
         if (string.IsNullOrWhiteSpace(apiKey))
             throw new InvalidOperationException("Configure TypeSafe:ApiKey before registering the TypeSafe Decisions client.");
 
-        return services.AddJevSystemOneClient(apiKey, options);
+        return services.AddTypeSafeDecisionsClient(apiKey, options);
     }
 
     public static IHttpClientBuilder AddOpenRouterDecisionsClient(
@@ -54,7 +58,7 @@ public static class ServiceCollectionsExtensions
         if (string.IsNullOrWhiteSpace(apiKey))
             throw new ArgumentException("An OpenRouter API key is required.", nameof(apiKey));
 
-        return services.AddHttpClient("JevDotNet.OpenRouter")
+        return services.AddHttpClient("DecisionsDotNet.OpenRouter")
             .AddTypedClient<IDecisionsClient>((httpClient, _) => new OpenRouterDecisionsClient(apiKey, httpClient, options));
     }
 
@@ -72,11 +76,11 @@ public static class ServiceCollectionsExtensions
     }
 
     /// <summary>Registers a direct TypeSafe client as a keyed <see cref="IDecisionsClient"/>, so it can sit beside other providers.</summary>
-    public static IHttpClientBuilder AddKeyedJevSystemOneClient(
+    public static IHttpClientBuilder AddKeyedTypeSafeDecisionsClient(
         this IServiceCollection services,
         object serviceKey,
         string apiKey,
-        JevClientOptions? options = null)
+        TypeSafeDecisionsClientOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(serviceKey);
@@ -84,24 +88,24 @@ public static class ServiceCollectionsExtensions
             throw new ArgumentException("A TypeSafe API key is required.", nameof(apiKey));
 
         // A unique name per registration keeps keys with equal ToString() values on separate HTTP pipelines.
-        var name = $"JevDotNet.TypeSafe.{Guid.NewGuid():N}";
+        var name = $"DecisionsDotNet.TypeSafe.{Guid.NewGuid():N}";
         services.AddKeyedTransient<IDecisionsClient>(serviceKey, (provider, _) =>
-            new JevClient(apiKey, provider.GetRequiredService<IHttpClientFactory>().CreateClient(name), options));
+            new TypeSafeDecisionsClient(apiKey, provider.GetRequiredService<IHttpClientFactory>().CreateClient(name), options));
         return services.AddHttpClient(name);
     }
 
-    public static IHttpClientBuilder AddKeyedJevSystemOneClient(
+    public static IHttpClientBuilder AddKeyedTypeSafeDecisionsClient(
         this IServiceCollection services,
         object serviceKey,
         IConfiguration configuration,
-        JevClientOptions? options = null)
+        TypeSafeDecisionsClientOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(configuration);
         var apiKey = configuration["TypeSafe:ApiKey"];
         if (string.IsNullOrWhiteSpace(apiKey))
             throw new InvalidOperationException("Configure TypeSafe:ApiKey before registering the TypeSafe Decisions client.");
 
-        return services.AddKeyedJevSystemOneClient(serviceKey, apiKey, options);
+        return services.AddKeyedTypeSafeDecisionsClient(serviceKey, apiKey, options);
     }
 
     /// <summary>Registers an OpenRouter client as a keyed <see cref="IDecisionsClient"/>, so it can sit beside other providers.</summary>
@@ -117,7 +121,7 @@ public static class ServiceCollectionsExtensions
             throw new ArgumentException("An OpenRouter API key is required.", nameof(apiKey));
 
         // A unique name per registration keeps keys with equal ToString() values on separate HTTP pipelines.
-        var name = $"JevDotNet.OpenRouter.{Guid.NewGuid():N}";
+        var name = $"DecisionsDotNet.OpenRouter.{Guid.NewGuid():N}";
         services.AddKeyedTransient<IDecisionsClient>(serviceKey, (provider, _) =>
             new OpenRouterDecisionsClient(apiKey, provider.GetRequiredService<IHttpClientFactory>().CreateClient(name), options));
         return services.AddHttpClient(name);
@@ -146,7 +150,7 @@ public static class ServiceCollectionsExtensions
         if (string.IsNullOrWhiteSpace(apiKey))
             throw new ArgumentException("An OpenAI API key is required.", nameof(apiKey));
 
-        return services.AddHttpClient("JevDotNet.OpenAI")
+        return services.AddHttpClient("DecisionsDotNet.OpenAI")
             .AddTypedClient<IDecisionsClient>((httpClient, _) => new OpenAIDecisionsClient(apiKey, httpClient, options));
     }
 
@@ -169,7 +173,7 @@ public static class ServiceCollectionsExtensions
             throw new ArgumentException("An OpenAI API key is required.", nameof(apiKey));
 
         // A unique name per registration keeps keys with equal ToString() values on separate HTTP pipelines.
-        var name = $"JevDotNet.OpenAI.{Guid.NewGuid():N}";
+        var name = $"DecisionsDotNet.OpenAI.{Guid.NewGuid():N}";
         services.AddKeyedTransient<IDecisionsClient>(serviceKey, (provider, _) =>
             new OpenAIDecisionsClient(apiKey, provider.GetRequiredService<IHttpClientFactory>().CreateClient(name), options));
         return services.AddHttpClient(name);

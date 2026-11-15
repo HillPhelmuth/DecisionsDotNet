@@ -1,64 +1,48 @@
-using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 
 namespace DecisionsDotNet;
 
-public sealed class JevClientOptions
+public sealed class TypeSafeDecisionsClientOptions : DecisionsClientOptions
 {
     /// <summary>Absolute HTTP or HTTPS service root. Endpoint paths such as v1/systemone are appended to this URI.</summary>
     public Uri BaseUri { get; init; } = new("https://api.typesafe.ai/");
-    public int MaxAttempts { get; init; } = 3;
-    public TimeSpan InitialRetryDelay { get; init; } = TimeSpan.FromSeconds(1);
-    public TimeSpan MaxRetryDelay { get; init; } = TimeSpan.FromSeconds(30);
     /// <summary>Input modalities keyed by exact model ID. Overrides take precedence over known Jev capabilities.</summary>
     public IReadOnlyDictionary<string, IReadOnlyList<string>> ModelInputModalitiesOverrides { get; init; }
         = new Dictionary<string, IReadOnlyList<string>>();
 }
 
-public sealed class JevApiException : Exception
-{
-    public JevApiException(HttpStatusCode statusCode, string responseBody, string service = "TypeSafe")
-        : base($"{service} API returned HTTP {(int)statusCode} ({statusCode}).")
-    {
-        StatusCode = statusCode;
-        ResponseBody = responseBody;
-        Service = service;
-    }
-
-    public HttpStatusCode StatusCode { get; }
-    public string ResponseBody { get; }
-    public string Service { get; }
-}
-
 /// <summary>HTTP client for TypeSafe AI's System One and model-list endpoints.</summary>
-public sealed class JevClient : IDecisionsClient, IDisposable
+public sealed class TypeSafeDecisionsClient : IDecisionsClient, IDisposable
 {
+    /// <summary>The alias for TypeSafe's current stable Jev model. Pass it as the request model.</summary>
+    public static string DefaultModel => "jev-latest";
+
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private readonly HttpClient _httpClient;
     private readonly bool _ownsHttpClient;
     private readonly string _apiKey;
-    private readonly JevClientOptions _options;
+    private readonly TypeSafeDecisionsClientOptions _options;
     private readonly IReadOnlyDictionary<string, IReadOnlyList<string>> _modalityOverrides;
     private readonly RetryPolicy _retry;
     private static readonly IReadOnlySet<int> RetryableStatusCodes = new HashSet<int> { 429, 529 };
 
-    public JevClient(string apiKey, HttpClient? httpClient = null, JevClientOptions? options = null)
+    public TypeSafeDecisionsClient(string apiKey, HttpClient? httpClient = null, TypeSafeDecisionsClientOptions? options = null)
     {
         _apiKey = !string.IsNullOrWhiteSpace(apiKey) ? apiKey : throw new ArgumentException("An API key is required.", nameof(apiKey));
-        _options = options ?? new JevClientOptions();
+        _options = options ?? new TypeSafeDecisionsClientOptions();
         _modalityOverrides = ModelInputModalities.Snapshot(_options.ModelInputModalitiesOverrides);
         if (_options.BaseUri is null || !_options.BaseUri.IsAbsoluteUri ||
             (_options.BaseUri.Scheme != Uri.UriSchemeHttps && _options.BaseUri.Scheme != Uri.UriSchemeHttp))
             throw new ArgumentException("BaseUri must be an absolute HTTP or HTTPS URI.", nameof(options));
-        _retry = new RetryPolicy(_options.MaxAttempts, _options.InitialRetryDelay, _options.MaxRetryDelay, RetryableStatusCodes);
+        _retry = RetryPolicy.From(_options, RetryableStatusCodes);
         _retry.Validate(nameof(options));
         _httpClient = httpClient ?? new HttpClient();
         _ownsHttpClient = httpClient is null;
     }
 
-    public static JevClient FromEnvironment(HttpClient? httpClient = null, JevClientOptions? options = null)
+    public static TypeSafeDecisionsClient FromEnvironment(HttpClient? httpClient = null, TypeSafeDecisionsClientOptions? options = null)
         => new(Environment.GetEnvironmentVariable("TYPESAFE_API_KEY")
             ?? throw new InvalidOperationException("TYPESAFE_API_KEY is not set."), httpClient, options);
 
@@ -100,12 +84,12 @@ public sealed class JevClient : IDecisionsClient, IDisposable
         }
         var enableImages = hasImages || request.Questions.Values.Any(question => question is BoxQuestion);
         var response = await SendAsync(HttpMethod.Post, "v1/systemone", body, cancellationToken, enableImages).ConfigureAwait(false);
-        return JevResponseValidator.DeserializeAndValidate(response, request.Questions);
+        return DecisionsResponseValidator.DeserializeAndValidate(response, request.Questions);
     }
 
-    public async Task<JevModelList> ListModelsAsync(CancellationToken cancellationToken = default)
+    public async Task<TypeSafeModelList> ListModelsAsync(CancellationToken cancellationToken = default)
     {
-        var result = Deserialize<JevModelList>(
+        var result = Deserialize<TypeSafeModelList>(
             await SendAsync(HttpMethod.Get, "v1/models", null, cancellationToken).ConfigureAwait(false));
         if (result.Models is null || result.Models.Any(model => model is null ||
             string.IsNullOrWhiteSpace(model.Name) || model.Description is null || model.ReleaseDate is null))

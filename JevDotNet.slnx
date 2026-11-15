@@ -1,7 +1,7 @@
 <Solution>
   <Project Path="ExtractionsDotNet/ExtractionsDotNet.csproj" />
-  <Project Path="JevDotNet.AI/JevDotNet.AI.csproj" />
+  <Project Path="DecisionsDotNet.AI/DecisionsDotNet.AI.csproj" />
   <Project Path="JevDotNet.Demo/JevDotNet.Demo.csproj" Id="278f2455-b942-4ec8-b99f-172dc735c8ae" />
   <Project Path="JevDotNet.Tests/JevDotNet.Tests.csproj" />
-  <Project Path="JevDotNet/JevDotNet.csproj" />
+  <Project Path="DecisionsDotNet/DecisionsDotNet.csproj" />
 </Solution>
