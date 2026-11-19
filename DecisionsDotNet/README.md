@@ -266,6 +266,63 @@ await foreach (var batch in client.EvaluateBatchesAsync(tickets, options, cancel
 
 Requests run one after another. By default a failed request is reported through `Error` and later batches still run; set `ContinueOnError = false` to throw instead. Cancellation always stops the run. Item IDs must be unique. Providers limit questions per request, so choose `ItemsPerRequest` with the number of questions per item in mind.
 
+## Conditionals in ordinary C#
+
+> Experimental (`DECISIONS002`). Add `<NoWarn>$(NoWarn);DECISIONS002</NoWarn>` to use it.
+
+`ForModel` binds a client to a model, and the verbs on the resulting `DecisionModel` each ask one question and return something you can branch on. Each verb is one paid network call, so put cheap checks first and let `&&` skip the model when it can:
+
+```csharp
+var model = client.ForModel("typesafe/jev-1.14");
+
+if (ticket.IsOpen && await model.MatchesAsync(ticket.Text, "Is the customer asking for a refund?",
+        minProbability: 0.75, cancellationToken: ct))
+{
+    await QueueRefundReviewAsync(ticket, ct);
+}
+```
+
+You always pick the threshold, because a moderation rule and a refund escalation need different tradeoffs. `ProbabilityAsync` returns the raw probability instead. When uncertainty needs its own path, `VerdictAsync` returns Yes, No, Unsure, or Refused:
+
+```csharp
+var verdict = await model.VerdictAsync(post.Body, "Does this violate the harassment policy?",
+    unsureBand: (0.3, 0.7), cancellationToken: ct);
+
+return verdict.Outcome switch
+{
+    VerdictOutcome.Yes     => RemovePost(post),
+    VerdictOutcome.No      => PublishPost(post),
+    VerdictOutcome.Unsure  => QueueForHumanReview(post, verdict.Probability),
+    VerdictOutcome.Refused => EscalatePolicyRefusal(post, verdict.Response),
+    _                      => throw new UnreachableException()
+};
+```
+
+`ChooseAsync<TEnum>` offers the members of an enum, using their names as labels and `[Description]` text as criteria. Pass a dictionary instead to offer a subset or vary the criteria. `ScoreAsync<TEnum>` rates on an enum's members, lowest value first:
+
+```csharp
+public enum Team
+{
+    [Description("Payments, invoices, and refunds")] Billing,
+    [Description("Bugs, errors, and service outages")] Technical,
+    [Description("Anything that does not fit another team")] Other
+}
+
+var route = await model.ChooseAsync<Team>(ticket.Text, "Which team should handle this request?", ct);
+var queue = route.SelectedProbability < 0.6 ? Queue.ManualReview : route.Value switch
+{
+    Team.Billing   => Queue.Billing,
+    Team.Technical => Queue.Technical,
+    _              => Queue.ManualReview
+};
+```
+
+Every result keeps its evidence: the probability or distribution, the raw `Answer`, and the full `Response` with model and usage. Failures never turn into answers. Provider and network errors propagate as before, invalid probabilities or labels throw `JsonException`, and a refusal throws `DecisionRefusedException` from every verb except `VerdictAsync`, which reports it as `Refused`.
+
+To inject a bound model, register it after the client: `services.AddDecisionModel("typesafe/jev-1.14")`, or `AddKeyedDecisionModel(key, modelId, clientServiceKey)` beside keyed clients. Hand-built requests still name their model; `DecisionModel.EvaluateAsync(builder)` builds one with the bound model.
+
+For unit tests, [DecisionsDotNet.Testing](https://www.nuget.org/packages/DecisionsDotNet.Testing) has a scripted `FakeDecisionsClient` and a `RecordingDecisionsClient`.
+
 ## Agents and chat tools
 
 The companion package `DecisionsDotNet.AI` exposes any `IDecisionsClient` as a Microsoft.Extensions.AI `AIFunction`, so a chat client or Microsoft Agent Framework agent can call Jev, OpenRouter, or OpenAI Decisions as a tool. `AsAIFunction` asks a fixed set of questions about text the model supplies; `AsOpenDecisionsAIFunction` lets the model write its own yes/no, choice, and score questions. See [its README](https://github.com/HillPhelmuth/JevDotNet/blob/main/DecisionsDotNet.AI/README.md).
@@ -312,6 +369,6 @@ Each keyed registration gets its own named `HttpClient` and returns its `IHttpCl
 From 1.0.0 the public types in this package follow semantic versioning: breaking changes only arrive in a major version. Two things sit outside that promise.
 
 - **Upstream APIs.** OpenRouter's Decisions route is still served under `/api/alpha/`, and TypeSafe labels image input on its direct API as experimental. When a provider changes its wire format, the SDK adapts in a minor or patch release and keeps its own types stable where it can.
-- **Experimental members.** Anything marked `[Experimental]`, currently the OpenAI client under `DECISIONS001`, may change in a minor release.
+- **Experimental members.** Anything marked `[Experimental]` may change in a minor release: currently the OpenAI client under `DECISIONS001` and the conditional verbs under `DECISIONS002`.
 
 See the [changelog](https://github.com/HillPhelmuth/JevDotNet/blob/main/CHANGELOG.md) for the migration from 0.3.

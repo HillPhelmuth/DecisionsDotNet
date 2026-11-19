@@ -1,1 +1,52 @@
 #nullable enable
+const DecisionsDotNet.DecisionModel.QuestionId = "decision" -> string!
+DecisionsDotNet.DecisionChoice<TEnum>
+DecisionsDotNet.DecisionChoice<TEnum>.Answer.get -> DecisionsDotNet.ChoiceAnswer!
+DecisionsDotNet.DecisionChoice<TEnum>.Probabilities.get -> System.Collections.Generic.IReadOnlyDictionary<TEnum, double>!
+DecisionsDotNet.DecisionChoice<TEnum>.Response.get -> DecisionsDotNet.DecisionsResponse!
+DecisionsDotNet.DecisionChoice<TEnum>.SelectedProbability.get -> double
+DecisionsDotNet.DecisionChoice<TEnum>.Value.get -> TEnum
+DecisionsDotNet.DecisionModel
+DecisionsDotNet.DecisionModel.ChooseAsync<TEnum>(DecisionsDotNet.DecisionsValue! input, DecisionsDotNet.DecisionsValue! instructions, System.Collections.Generic.IReadOnlyDictionary<TEnum, DecisionsDotNet.DecisionsValue?>! criteria, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<DecisionsDotNet.DecisionChoice<TEnum>!>!
+DecisionsDotNet.DecisionModel.ChooseAsync<TEnum>(DecisionsDotNet.DecisionsValue! input, DecisionsDotNet.DecisionsValue! instructions, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<DecisionsDotNet.DecisionChoice<TEnum>!>!
+DecisionsDotNet.DecisionModel.Client.get -> DecisionsDotNet.IDecisionsClient!
+DecisionsDotNet.DecisionModel.DecisionModel(DecisionsDotNet.IDecisionsClient! client, string! modelId) -> void
+DecisionsDotNet.DecisionModel.EvaluateAsync(DecisionsDotNet.DecisionsRequestBuilder! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<DecisionsDotNet.DecisionsResponse!>!
+DecisionsDotNet.DecisionModel.MatchesAsync(DecisionsDotNet.DecisionsValue! input, DecisionsDotNet.DecisionsValue! instructions, double minProbability, DecisionsDotNet.NoulCriteria? criteria = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+DecisionsDotNet.DecisionModel.ModelId.get -> string!
+DecisionsDotNet.DecisionModel.ProbabilityAsync(DecisionsDotNet.DecisionsValue! input, DecisionsDotNet.DecisionsValue! instructions, DecisionsDotNet.NoulCriteria? criteria = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<double>!
+DecisionsDotNet.DecisionModel.ScoreAsync(DecisionsDotNet.DecisionsValue! input, DecisionsDotNet.DecisionsValue! instructions, System.Collections.Generic.IReadOnlyList<DecisionsDotNet.DecisionsValue!>! levels, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<DecisionsDotNet.DecisionScore!>!
+DecisionsDotNet.DecisionModel.ScoreAsync<TEnum>(DecisionsDotNet.DecisionsValue! input, DecisionsDotNet.DecisionsValue! instructions, System.Collections.Generic.IReadOnlyDictionary<TEnum, DecisionsDotNet.DecisionsValue!>! levels, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<DecisionsDotNet.DecisionScore<TEnum>!>!
+DecisionsDotNet.DecisionModel.ScoreAsync<TEnum>(DecisionsDotNet.DecisionsValue! input, DecisionsDotNet.DecisionsValue! instructions, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<DecisionsDotNet.DecisionScore<TEnum>!>!
+DecisionsDotNet.DecisionModel.VerdictAsync(DecisionsDotNet.DecisionsValue! input, DecisionsDotNet.DecisionsValue! instructions, (double Low, double High) unsureBand, DecisionsDotNet.NoulCriteria? criteria = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<DecisionsDotNet.DecisionVerdict!>!
+DecisionsDotNet.DecisionModelExtensions
+DecisionsDotNet.DecisionRefusedException
+DecisionsDotNet.DecisionRefusedException.DecisionRefusedException(string! questionId, DecisionsDotNet.DecisionsResponse! response) -> void
+DecisionsDotNet.DecisionRefusedException.QuestionId.get -> string!
+DecisionsDotNet.DecisionRefusedException.Response.get -> DecisionsDotNet.DecisionsResponse!
+DecisionsDotNet.DecisionScore
+DecisionsDotNet.DecisionScore.Answer.get -> DecisionsDotNet.ScoreAnswer!
+DecisionsDotNet.DecisionScore.Level.get -> int
+DecisionsDotNet.DecisionScore.LevelCount.get -> int
+DecisionsDotNet.DecisionScore.Response.get -> DecisionsDotNet.DecisionsResponse!
+DecisionsDotNet.DecisionScore.Score.get -> double
+DecisionsDotNet.DecisionScore<TEnum>
+DecisionsDotNet.DecisionScore<TEnum>.Answer.get -> DecisionsDotNet.ScoreAnswer!
+DecisionsDotNet.DecisionScore<TEnum>.Levels.get -> System.Collections.Generic.IReadOnlyList<TEnum>!
+DecisionsDotNet.DecisionScore<TEnum>.Response.get -> DecisionsDotNet.DecisionsResponse!
+DecisionsDotNet.DecisionScore<TEnum>.Score.get -> double
+DecisionsDotNet.DecisionScore<TEnum>.Value.get -> TEnum
+DecisionsDotNet.DecisionVerdict
+DecisionsDotNet.DecisionVerdict.Answer.get -> DecisionsDotNet.NoulAnswer?
+DecisionsDotNet.DecisionVerdict.Outcome.get -> DecisionsDotNet.VerdictOutcome
+DecisionsDotNet.DecisionVerdict.Probability.get -> double?
+DecisionsDotNet.DecisionVerdict.Response.get -> DecisionsDotNet.DecisionsResponse!
+DecisionsDotNet.VerdictOutcome
+DecisionsDotNet.VerdictOutcome.No = 1 -> DecisionsDotNet.VerdictOutcome
+DecisionsDotNet.VerdictOutcome.Refused = 3 -> DecisionsDotNet.VerdictOutcome
+DecisionsDotNet.VerdictOutcome.Unsure = 2 -> DecisionsDotNet.VerdictOutcome
+DecisionsDotNet.VerdictOutcome.Yes = 0 -> DecisionsDotNet.VerdictOutcome
+static DecisionsDotNet.DecisionModelExtensions.AddDecisionModel(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! modelId) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static DecisionsDotNet.DecisionModelExtensions.AddKeyedDecisionModel(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, object! serviceKey, string! modelId, object? clientServiceKey = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static DecisionsDotNet.DecisionModelExtensions.ForModel(this DecisionsDotNet.IDecisionsClient! client, string! modelId) -> DecisionsDotNet.DecisionModel!
+static DecisionsDotNet.DecisionVerdict.Classify(double probability, double low, double high) -> DecisionsDotNet.VerdictOutcome

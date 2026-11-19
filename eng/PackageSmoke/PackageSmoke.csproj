@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!--
-    Consumes the three packages the way a customer would: from .nupkg files, not project references.
+    Consumes the shipped packages the way a customer would: from .nupkg files, not project references.
     Run it through eng/verify-packages.sh, which packs them into artifacts/nuget first.
   -->
   <PropertyGroup>
@@ -11,11 +11,14 @@
     <IsPackable>false</IsPackable>
     <!-- A private package folder, so a stale copy of the same version in the machine-wide cache is never used. -->
     <RestorePackagesPath>$(MSBuildProjectDirectory)/obj/packages</RestorePackagesPath>
+    <!-- The smoke check touches the experimental conditional layer too. -->
+    <NoWarn>$(NoWarn);DECISIONS002</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <!-- Versions come from Directory.Build.props at the repository root. -->
     <PackageReference Include="DecisionsDotNet" Version="[$(DecisionsVersion)]" />
     <PackageReference Include="DecisionsDotNet.AI" Version="[$(DecisionsVersion)]" />
+    <PackageReference Include="DecisionsDotNet.Testing" Version="[$(DecisionsVersion)]" />
     <PackageReference Include="ExtractionsDotNet" Version="[$(ExtractionsVersion)]" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
   </ItemGroup>

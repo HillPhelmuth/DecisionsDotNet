@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <!-- The test doubles build on the experimental conditional layer they ship beside. -->
+    <NoWarn>$(NoWarn);DECISIONS002</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PackageId>DecisionsDotNet.Testing</PackageId>
+    <Version>$(DecisionsVersion)</Version>
+    <Title>DecisionsDotNet.Testing - test doubles for DecisionsDotNet</Title>
+    <Description>A scripted fake and a recording wrapper for the DecisionsDotNet IDecisionsClient, so code that branches on Decisions answers can be unit tested without HTTP stubs or a provider key.</Description>
+    <PackageTags>Jev;TypeSafe;OpenRouter;OpenAI;decisions;testing;fakes</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DecisionsDotNet\DecisionsDotNet.csproj" />
+    <None Include="README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+</Project>

@@ -7,8 +7,8 @@
     <IsTestProject>true</IsTestProject>
     <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
     <IsPackable>false</IsPackable>
-    <!-- The tests exercise the experimental OpenAI client. -->
-    <NoWarn>$(NoWarn);DECISIONS001</NoWarn>
+    <!-- The tests exercise the experimental OpenAI client and conditional layer. -->
+    <NoWarn>$(NoWarn);DECISIONS001;DECISIONS002</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <Using Include="Xunit" />
@@ -20,5 +20,6 @@
     <ProjectReference Include="..\ExtractionsDotNet\ExtractionsDotNet.csproj" />
     <ProjectReference Include="..\DecisionsDotNet\DecisionsDotNet.csproj" />
     <ProjectReference Include="..\DecisionsDotNet.AI\DecisionsDotNet.AI.csproj" />
+    <ProjectReference Include="..\DecisionsDotNet.Testing\DecisionsDotNet.Testing.csproj" />
   </ItemGroup>
 </Project>

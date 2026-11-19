@@ -2,6 +2,20 @@
 
 `DecisionsDotNet` and `DecisionsDotNet.AI` share a version. `ExtractionsDotNet` versions on its own. From 1.0.0 all three follow [semantic versioning](https://semver.org/).
 
+## Unreleased
+
+### DecisionsDotNet
+
+Added, all experimental under `DECISIONS002`:
+
+- `IDecisionsClient.ForModel(modelId)` and `DecisionModel`, a client bound to one model. `AddDecisionModel` and `AddKeyedDecisionModel` register one for injection. The low-level request API is unchanged and still names its model.
+- Conditional verbs on `DecisionModel`: `MatchesAsync` (caller-chosen threshold), `ProbabilityAsync`, `VerdictAsync` (Yes, No, Unsure, Refused), `ChooseAsync<TEnum>`, `ScoreAsync<TEnum>`, and a text-level `ScoreAsync`.
+- Result types `DecisionVerdict`, `DecisionChoice<TEnum>`, `DecisionScore<TEnum>` and `DecisionScore`, each keeping the raw answer and full response, and `DecisionRefusedException`.
+
+### DecisionsDotNet.Testing (new)
+
+- `FakeDecisionsClient`, which answers from scripted rules, and `RecordingDecisionsClient`, which wraps any client and records its calls. Experimental under `DECISIONS002`. Versions with `DecisionsDotNet`.
+
 ## 1.0.0 (2026-11-15)
 
 The first stable release. It renames the remaining `Jev` types, makes a few shapes explicit, and brings `ExtractionsDotNet` level with the Decisions packages. Everything below is a change from 0.3.0-preview.
@@ -67,6 +81,7 @@ Members marked `[Experimental]` produce a compiler error until you suppress thei
 | Diagnostic | Members | Why |
 | --- | --- | --- |
 | `DECISIONS001` | `OpenAIDecisionsClient`, `OpenAIDecisionsClientOptions`, `AddOpenAIDecisionsClient`, `AddKeyedOpenAIDecisionsClient` | Verified against recorded response shapes, not yet against the live OpenAI Decisions API. |
+| `DECISIONS002` | `DecisionModel` and its verbs and result types, and everything in `DecisionsDotNet.Testing` (added after 1.0.0) | New in 1.1; the shape may change after real use. |
 
 To use them, add `<NoWarn>$(NoWarn);DECISIONS001</NoWarn>` to your project file, or wrap the code in `#pragma warning disable DECISIONS001`.
 

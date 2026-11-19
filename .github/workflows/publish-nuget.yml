@@ -1,7 +1,7 @@
 name: Publish packages to NuGet
 
 # A release is a tag on main:
-#   decisions-v1.2.3    publishes DecisionsDotNet and DecisionsDotNet.AI, which always ship together
+#   decisions-v1.2.3    publishes DecisionsDotNet, DecisionsDotNet.AI and DecisionsDotNet.Testing, which always ship together
 #   extractions-v1.2.3  publishes ExtractionsDotNet
 # The tag's version must equal the version in Directory.Build.props, or the run fails before building.
 # Running the workflow by hand is a rehearsal: it builds, tests, and packs, but never publishes.
@@ -63,7 +63,7 @@ jobs:
           fi
 
           case "$packages" in
-            decisions)   project=DecisionsDotNet;   ids='DecisionsDotNet DecisionsDotNet.AI' ;;
+            decisions)   project=DecisionsDotNet;   ids='DecisionsDotNet DecisionsDotNet.AI DecisionsDotNet.Testing' ;;
             extractions) project=ExtractionsDotNet; ids='ExtractionsDotNet' ;;
             *) echo "::error::Unknown package set '$packages'."; exit 1 ;;
           esac
