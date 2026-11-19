@@ -252,6 +252,26 @@ public sealed class ConditionalVerbChecks
             new FakeDecisionsClient().AnswerScore(double.NaN).ForModel(Model).ScoreAsync("x", "How?", ["Low", "High"]));
     }
 
+    [Theory]
+    [InlineData("3", 0.5)]
+    [InlineData("-1", 0.5)]
+    [InlineData("01", 0.5)]
+    [InlineData("x", 0.5)]
+    [InlineData("1", double.NaN)]
+    [InlineData("1", 1.5)]
+    public async Task ScoreDistributionsAreValidatedAsync(string level, double probability)
+    {
+        var fake = new FakeDecisionsClient().Answer(_ => true, _ => new ScoreAnswer
+        {
+            Score = 0.5,
+            Legend = new Dictionary<string, string> { ["0"] = "a", ["1"] = "b", ["2"] = "c" },
+            Probabilities = new Dictionary<string, double> { ["0"] = 0.5, [level] = probability },
+            Confidence = 0.5,
+        });
+        await Assert.ThrowsAsync<JsonException>(() => fake.ForModel(Model).ScoreAsync<Mood>("x", "How?"));
+        await Assert.ThrowsAsync<JsonException>(() => fake.ForModel(Model).ScoreAsync("x", "How?", ["a", "b", "c"]));
+    }
+
     [Fact]
     public async Task ExplicitAndTextScoresAsync()
     {

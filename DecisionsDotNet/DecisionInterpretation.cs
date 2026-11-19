@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Reflection;
 using System.Text.Json;
 
@@ -126,6 +127,14 @@ internal static class DecisionInterpretation
         const double tolerance = 1e-6;
         if (!double.IsFinite(answer.Score) || answer.Score < -tolerance || answer.Score > levelCount - 1 + tolerance)
             throw new JsonException($"Answer '{questionId}' has score {answer.Score}, outside the {levelCount} levels offered.");
+        foreach (var (level, probability) in answer.Probabilities)
+        {
+            if (!int.TryParse(level, NumberStyles.None, CultureInfo.InvariantCulture, out var index) || index >= levelCount ||
+                !string.Equals(level, index.ToString(CultureInfo.InvariantCulture), StringComparison.Ordinal))
+                throw new JsonException($"Answer '{questionId}' gives a probability for level '{level}', which was not offered.");
+            if (!IsProbability(probability))
+                throw new JsonException($"Answer '{questionId}' gives level '{level}' probability {probability}, which is not a finite value from 0 to 1.");
+        }
         return Math.Clamp((int)Math.Round(answer.Score, MidpointRounding.AwayFromZero), 0, levelCount - 1);
     }
 
