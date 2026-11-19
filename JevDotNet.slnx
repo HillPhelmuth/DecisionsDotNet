@@ -6,4 +6,5 @@
   <Project Path="JevDotNet.Demo.Tests/JevDotNet.Demo.Tests.csproj" />
   <Project Path="DecisionsDotNet/DecisionsDotNet.csproj" />
   <Project Path="DecisionsDotNet.Testing/DecisionsDotNet.Testing.csproj" />
+  <Project Path="DecisionsDotNet.Caching/DecisionsDotNet.Caching.csproj" />
 </Solution>

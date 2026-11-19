@@ -1,13 +1,13 @@
 <Project>
 
-  <!-- Versions. DecisionsDotNet, DecisionsDotNet.AI and DecisionsDotNet.Testing always ship together; ExtractionsDotNet versions on its own. -->
+  <!-- Versions. DecisionsDotNet and its add-on packages (.AI, .Testing, .Caching) always ship together; ExtractionsDotNet versions on its own. -->
   <PropertyGroup>
-    <DecisionsVersion>1.0.0</DecisionsVersion>
+    <DecisionsVersion>1.1.0-preview.1</DecisionsVersion>
     <ExtractionsVersion>1.0.0</ExtractionsVersion>
   </PropertyGroup>
 
   <!-- The shipped packages. Everything conditioned on IsShippedPackage skips the demo and tests. -->
-  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'DecisionsDotNet' or '$(MSBuildProjectName)' == 'DecisionsDotNet.AI' or '$(MSBuildProjectName)' == 'DecisionsDotNet.Testing' or '$(MSBuildProjectName)' == 'ExtractionsDotNet'">
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'DecisionsDotNet' or '$(MSBuildProjectName)' == 'DecisionsDotNet.AI' or '$(MSBuildProjectName)' == 'DecisionsDotNet.Testing' or '$(MSBuildProjectName)' == 'DecisionsDotNet.Caching' or '$(MSBuildProjectName)' == 'ExtractionsDotNet'">
     <IsShippedPackage>true</IsShippedPackage>
     <!-- Every public member needs an XML doc comment; a missing one (CS1591) fails the build. -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>

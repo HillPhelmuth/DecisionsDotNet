@@ -5,7 +5,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 rm -rf artifacts/nuget eng/PackageSmoke/bin eng/PackageSmoke/obj
-for project in DecisionsDotNet DecisionsDotNet.AI DecisionsDotNet.Testing ExtractionsDotNet; do
+for project in DecisionsDotNet DecisionsDotNet.AI DecisionsDotNet.Testing DecisionsDotNet.Caching ExtractionsDotNet; do
   dotnet pack "$project/$project.csproj" --configuration Release --output artifacts/nuget "$@"
 done
 

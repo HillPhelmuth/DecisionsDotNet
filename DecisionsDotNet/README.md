@@ -363,6 +363,35 @@ To inject a bound model, register it after the client: `services.AddDecisionMode
 
 For unit tests, [DecisionsDotNet.Testing](https://www.nuget.org/packages/DecisionsDotNet.Testing) has a scripted `FakeDecisionsClient` and a `RecordingDecisionsClient`.
 
+## Pipelines: caching, fallback, logging, and tracing
+
+> Experimental (`DECISIONS002`), in the `DecisionsDotNet.Pipeline` namespace.
+
+`AddDecisionsClient` wraps a provider client in decorators, in the style of Microsoft.Extensions.AI's `ChatClientBuilder`. The first `Use` call is the outermost. Resolve the inner client by key, since the pipeline itself is the unkeyed `IDecisionsClient`:
+
+```csharp
+using DecisionsDotNet.Caching;   // UseCaching, from the DecisionsDotNet.Caching package
+using DecisionsDotNet.Pipeline;
+
+builder.Services.AddHybridCache();
+builder.Services.AddKeyedOpenRouterDecisionsClient("openrouter", builder.Configuration);
+builder.Services.AddKeyedTypeSafeDecisionsClient("typesafe", builder.Configuration);
+
+builder.Services.AddDecisionsClient(sp => sp.GetRequiredKeyedService<IDecisionsClient>("openrouter"))
+    .UseLogging()
+    .UseOpenTelemetry()
+    .UseCaching(TimeSpan.FromHours(1))
+    .UseFallback("typesafe", model => model == "typesafe/jev-1.14" ? "jev-1.14.0" : model);
+builder.Services.AddDecisionModel("typesafe/jev-1.14");
+```
+
+- **`UseFallback`** retries on the keyed fallback client after HTTP 408, 429 or 5xx, network errors, timeouts, and malformed responses. Authentication, permission and other 4xx errors, and your own cancellation, still throw. Model IDs differ by provider, so pass a mapping.
+- **`UseLogging`** writes model, question IDs, elapsed time, tokens and refusals at Information, and each answer at Debug. It never logs the state or instructions.
+- **`UseOpenTelemetry`** starts a `decisions.evaluate` span with the model, question IDs, each answer (`decisions.answer.<id>` such as `choice:Billing@0.91`), tokens and cost, and records `decisions.client.duration`, `decisions.client.tokens`, `decisions.client.cost` and `decisions.client.refusals`. Subscribe with `AddSource("DecisionsDotNet")` and `AddMeter("DecisionsDotNet")`.
+- **`UseCaching`** lives in [DecisionsDotNet.Caching](https://www.nuget.org/packages/DecisionsDotNet.Caching), so core does not depend on `HybridCache`.
+
+Derive from `DelegatingDecisionsClient` for your own decorator and add it with `Use`. For HTTP-level resilience, every `Add*DecisionsClient` returns its `IHttpClientBuilder`, which `Microsoft.Extensions.Http.Resilience` plugs into.
+
 ## Agents and chat tools
 
 The companion package `DecisionsDotNet.AI` exposes any `IDecisionsClient` as a Microsoft.Extensions.AI `AIFunction`, so a chat client or Microsoft Agent Framework agent can call Jev, OpenRouter, or OpenAI Decisions as a tool. `AsAIFunction` asks a fixed set of questions about text the model supplies; `AsOpenDecisionsAIFunction` lets the model write its own yes/no, choice, and score questions. See [its README](https://github.com/HillPhelmuth/JevDotNet/blob/main/DecisionsDotNet.AI/README.md).

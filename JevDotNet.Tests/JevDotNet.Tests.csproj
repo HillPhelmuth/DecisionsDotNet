@@ -21,5 +21,6 @@
     <ProjectReference Include="..\DecisionsDotNet\DecisionsDotNet.csproj" />
     <ProjectReference Include="..\DecisionsDotNet.AI\DecisionsDotNet.AI.csproj" />
     <ProjectReference Include="..\DecisionsDotNet.Testing\DecisionsDotNet.Testing.csproj" />
+    <ProjectReference Include="..\DecisionsDotNet.Caching\DecisionsDotNet.Caching.csproj" />
   </ItemGroup>
 </Project>

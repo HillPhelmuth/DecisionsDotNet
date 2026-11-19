@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <!-- The cache decorator builds on the experimental pipeline it ships beside. -->
+    <NoWarn>$(NoWarn);DECISIONS002</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PackageId>DecisionsDotNet.Caching</PackageId>
+    <Version>$(DecisionsVersion)</Version>
+    <Title>DecisionsDotNet.Caching - HybridCache for DecisionsDotNet</Title>
+    <Description>Caches DecisionsDotNet evaluations in Microsoft.Extensions.Caching.Hybrid, keyed by a content hash of the state, questions, and model, as a DecisionsClientBuilder decorator.</Description>
+    <PackageTags>Jev;TypeSafe;OpenRouter;OpenAI;decisions;caching;HybridCache</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DecisionsDotNet\DecisionsDotNet.csproj" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" Version="10.0.0" />
+    <None Include="README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+</Project>

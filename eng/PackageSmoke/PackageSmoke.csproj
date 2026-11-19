@@ -19,6 +19,7 @@
     <PackageReference Include="DecisionsDotNet" Version="[$(DecisionsVersion)]" />
     <PackageReference Include="DecisionsDotNet.AI" Version="[$(DecisionsVersion)]" />
     <PackageReference Include="DecisionsDotNet.Testing" Version="[$(DecisionsVersion)]" />
+    <PackageReference Include="DecisionsDotNet.Caching" Version="[$(DecisionsVersion)]" />
     <PackageReference Include="ExtractionsDotNet" Version="[$(ExtractionsVersion)]" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
   </ItemGroup>

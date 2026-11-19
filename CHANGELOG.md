@@ -2,7 +2,7 @@
 
 `DecisionsDotNet` and `DecisionsDotNet.AI` share a version. `ExtractionsDotNet` versions on its own. From 1.0.0 all three follow [semantic versioning](https://semver.org/).
 
-## Unreleased
+## 1.1.0-preview.1 (unreleased)
 
 ### DecisionsDotNet
 
@@ -13,6 +13,12 @@ Added, all experimental under `DECISIONS002`:
 - Result types `DecisionVerdict`, `DecisionChoice<TEnum>`, `DecisionScore<TEnum>` and `DecisionScore`, each keeping the raw answer and full response, and `DecisionRefusedException`.
 - Typed decision sets: `DecideAsync<T>` and `DecideWithResponseAsync<T>` ask every `[Noul]`, `[Choice]` and `[Score]` property of a class in one request.
 - Batched collection verbs on `DecisionModel`: `WhereAsync`, `PartitionAsync`, `GroupByChoiceAsync<TEnum, T>` and `OrderByScoreAsync<TEnum, T>`, over `IEnumerable<T>` or `IAsyncEnumerable<T>`, built on `EvaluateBatchesAsync`, with `DecisionCollectionOptions<T>` for batch size and a prefilter.
+
+- Client pipeline in `DecisionsDotNet.Pipeline`: `DelegatingDecisionsClient`, `DecisionsClientBuilder`, `AddDecisionsClient` and `AddKeyedDecisionsClient`, with `UseFallback`, `UseLogging` and `UseOpenTelemetry`.
+
+### DecisionsDotNet.Caching (new)
+
+- `UseCaching` and `CachingDecisionsClient`, which cache successful evaluations in `HybridCache` by a content hash of the request. Experimental under `DECISIONS002`. Versions with `DecisionsDotNet`.
 
 ### DecisionsDotNet.Testing (new)
 
@@ -83,7 +89,7 @@ Members marked `[Experimental]` produce a compiler error until you suppress thei
 | Diagnostic | Members | Why |
 | --- | --- | --- |
 | `DECISIONS001` | `OpenAIDecisionsClient`, `OpenAIDecisionsClientOptions`, `AddOpenAIDecisionsClient`, `AddKeyedOpenAIDecisionsClient` | Verified against recorded response shapes, not yet against the live OpenAI Decisions API. |
-| `DECISIONS002` | `DecisionModel` and its verbs and result types, and everything in `DecisionsDotNet.Testing` (added after 1.0.0) | New in 1.1; the shape may change after real use. |
+| `DECISIONS002` | `DecisionModel`, its verbs, result types, decision sets and collection verbs, the `DecisionsDotNet.Pipeline` namespace, and everything in `DecisionsDotNet.Testing` and `DecisionsDotNet.Caching` (added after 1.0.0) | New in 1.1; the shape may change after real use. |
 
 To use them, add `<NoWarn>$(NoWarn);DECISIONS001</NoWarn>` to your project file, or wrap the code in `#pragma warning disable DECISIONS001`.
 
