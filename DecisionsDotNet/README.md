@@ -361,7 +361,7 @@ var byMood = await model.OrderByScoreAsync<Frustration, Ticket>(tickets, t => t.
 
 To inject a bound model, register it after the client: `services.AddDecisionModel("typesafe/jev-1.14")`, or `AddKeyedDecisionModel(key, modelId, clientServiceKey)` beside keyed clients. Hand-built requests still name their model; `DecisionModel.EvaluateAsync(builder)` builds one with the bound model.
 
-For unit tests, [DecisionsDotNet.Testing](https://www.nuget.org/packages/DecisionsDotNet.Testing) has a scripted `FakeDecisionsClient` and a `RecordingDecisionsClient`.
+For ASP.NET Core filters, FluentValidation rules and MediatR behaviors built on these verbs, see the [recipes](https://github.com/HillPhelmuth/JevDotNet/blob/main/docs/recipes.md). For unit tests, [DecisionsDotNet.Testing](https://www.nuget.org/packages/DecisionsDotNet.Testing) has a scripted `FakeDecisionsClient` and a `RecordingDecisionsClient`.
 
 ## Pipelines: caching, fallback, logging, and tracing
 

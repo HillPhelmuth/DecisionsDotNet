@@ -21,6 +21,9 @@
     <PackageReference Include="DecisionsDotNet.Testing" Version="[$(DecisionsVersion)]" />
     <PackageReference Include="DecisionsDotNet.Caching" Version="[$(DecisionsVersion)]" />
     <PackageReference Include="ExtractionsDotNet" Version="[$(ExtractionsVersion)]" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
+    <!-- docs/recipes.md examples compile against these. MediatR 12.x is the last Apache-licensed line. -->
+    <PackageReference Include="FluentValidation" Version="12.0.0" />
+    <PackageReference Include="MediatR" Version="12.5.0" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 </Project>

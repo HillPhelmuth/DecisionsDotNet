@@ -16,9 +16,21 @@ Added, all experimental under `DECISIONS002`:
 
 - Client pipeline in `DecisionsDotNet.Pipeline`: `DelegatingDecisionsClient`, `DecisionsClientBuilder`, `AddDecisionsClient` and `AddKeyedDecisionsClient`, with `UseFallback`, `UseLogging` and `UseOpenTelemetry`.
 
+### DecisionsDotNet.AI
+
+Added, experimental under `DECISIONS002`:
+
+- `UseDecisionGuardrails` and `DecisionGuardrailChatClient`: calibrated input and output checks around any `IChatClient`, failing closed.
+- `Router` and `Gate` workflow steps, with `DecisionRoute<TMessage, TEnum>.When` and `DecisionGate<TMessage>.When` edge conditions for Agent Framework workflows.
+- Now depends on `Microsoft.Extensions.AI` (for `ChatClientBuilder`) instead of only `Microsoft.Extensions.AI.Abstractions`.
+
 ### DecisionsDotNet.Caching (new)
 
 - `UseCaching` and `CachingDecisionsClient`, which cache successful evaluations in `HybridCache` by a content hash of the request. Experimental under `DECISIONS002`. Versions with `DecisionsDotNet`.
+
+### Docs
+
+- [docs/recipes.md](docs/recipes.md): ASP.NET Core endpoint filter, FluentValidation, MediatR, and multi-condition examples, compiled against the packed packages in the package smoke check.
 
 ### DecisionsDotNet.Testing (new)
 
@@ -89,7 +101,7 @@ Members marked `[Experimental]` produce a compiler error until you suppress thei
 | Diagnostic | Members | Why |
 | --- | --- | --- |
 | `DECISIONS001` | `OpenAIDecisionsClient`, `OpenAIDecisionsClientOptions`, `AddOpenAIDecisionsClient`, `AddKeyedOpenAIDecisionsClient` | Verified against recorded response shapes, not yet against the live OpenAI Decisions API. |
-| `DECISIONS002` | `DecisionModel`, its verbs, result types, decision sets and collection verbs, the `DecisionsDotNet.Pipeline` namespace, and everything in `DecisionsDotNet.Testing` and `DecisionsDotNet.Caching` (added after 1.0.0) | New in 1.1; the shape may change after real use. |
+| `DECISIONS002` | `DecisionModel`, its verbs, result types, decision sets and collection verbs, the `DecisionsDotNet.Pipeline` namespace, the guardrail and workflow helpers in `DecisionsDotNet.AI`, and everything in `DecisionsDotNet.Testing` and `DecisionsDotNet.Caching` (added after 1.0.0) | New in 1.1; the shape may change after real use. |
 
 To use them, add `<NoWarn>$(NoWarn);DECISIONS001</NoWarn>` to your project file, or wrap the code in `#pragma warning disable DECISIONS001`.
 

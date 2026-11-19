@@ -7,7 +7,7 @@
 | [DecisionsDotNet](https://www.nuget.org/packages/DecisionsDotNet) | Typed yes/no, choice, score, and bounding-box questions through TypeSafe, OpenRouter, or OpenAI, with DI, batching, and bounded retries. | [README](DecisionsDotNet/README.md) |
 | [DecisionsDotNet.Testing](https://www.nuget.org/packages/DecisionsDotNet.Testing) | A scripted fake and a recording wrapper for `IDecisionsClient`, for unit tests. | [README](DecisionsDotNet.Testing/README.md) |
 | [DecisionsDotNet.Caching](https://www.nuget.org/packages/DecisionsDotNet.Caching) | Caches evaluations in `HybridCache` as a client pipeline decorator. | [README](DecisionsDotNet.Caching/README.md) |
-| [DecisionsDotNet.AI](https://www.nuget.org/packages/DecisionsDotNet.AI) | Exposes any Decisions client as a Microsoft.Extensions.AI tool for chat clients and agents. | [README](DecisionsDotNet.AI/README.md) |
+| [DecisionsDotNet.AI](https://www.nuget.org/packages/DecisionsDotNet.AI) | Exposes any Decisions client as a Microsoft.Extensions.AI tool for chat clients and agents, plus chat guardrails and workflow routing. | [README](DecisionsDotNet.AI/README.md) |
 | [ExtractionsDotNet](https://www.nuget.org/packages/ExtractionsDotNet) | Typed field extraction from text, images, and PDFs through OpenRouter. | [README](ExtractionsDotNet/README.md) |
 
 ```powershell
@@ -17,6 +17,8 @@ dotnet add package ExtractionsDotNet
 ```
 
 `DecisionsDotNet` and its add-ons (`.AI`, `.Testing`, `.Caching`) always share a version. `ExtractionsDotNet` versions on its own. See the [changelog](CHANGELOG.md) for releases and the migration from 0.3.
+
+[docs/recipes.md](docs/recipes.md) shows the semantic conditional verbs in ASP.NET Core endpoint filters, FluentValidation rules, and MediatR behaviors.
 
 The repository, demo, and test project keep their original `JevDotNet` names.
 
