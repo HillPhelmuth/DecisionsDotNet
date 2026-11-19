@@ -1,15 +1,36 @@
 #nullable enable
 const DecisionsDotNet.DecisionModel.QuestionId = "decision" -> string!
+DecisionsDotNet.ChoiceAttribute
+DecisionsDotNet.ChoiceAttribute.ChoiceAttribute(string! instructions) -> void
 DecisionsDotNet.DecisionChoice<TEnum>
 DecisionsDotNet.DecisionChoice<TEnum>.Answer.get -> DecisionsDotNet.ChoiceAnswer!
 DecisionsDotNet.DecisionChoice<TEnum>.Probabilities.get -> System.Collections.Generic.IReadOnlyDictionary<TEnum, double>!
 DecisionsDotNet.DecisionChoice<TEnum>.Response.get -> DecisionsDotNet.DecisionsResponse!
 DecisionsDotNet.DecisionChoice<TEnum>.SelectedProbability.get -> double
 DecisionsDotNet.DecisionChoice<TEnum>.Value.get -> TEnum
+DecisionsDotNet.DecisionCollectionExtensions
+DecisionsDotNet.DecisionCollectionOptions<T>
+DecisionsDotNet.DecisionCollectionOptions<T>.DecisionCollectionOptions() -> void
+DecisionsDotNet.DecisionCollectionOptions<T>.ItemsPerRequest.get -> int
+DecisionsDotNet.DecisionCollectionOptions<T>.ItemsPerRequest.init -> void
+DecisionsDotNet.DecisionCollectionOptions<T>.Prefilter.get -> System.Func<T, bool>?
+DecisionsDotNet.DecisionCollectionOptions<T>.Prefilter.init -> void
+DecisionsDotNet.DecisionGroup<TEnum, T>
+DecisionsDotNet.DecisionGroup<TEnum, T>.Items.get -> System.Collections.Generic.IReadOnlyList<T>!
+DecisionsDotNet.DecisionGroup<TEnum, T>.Key.get -> TEnum
+DecisionsDotNet.DecisionGroup<TEnum, T>.Results.get -> System.Collections.Generic.IReadOnlyList<DecisionsDotNet.DecisionItem<T, DecisionsDotNet.DecisionChoice<TEnum>!>!>!
+DecisionsDotNet.DecisionItem<T, TResult>
+DecisionsDotNet.DecisionItem<T, TResult>.DecisionItem(T Item, TResult Result) -> void
+DecisionsDotNet.DecisionItem<T, TResult>.Item.get -> T
+DecisionsDotNet.DecisionItem<T, TResult>.Item.init -> void
+DecisionsDotNet.DecisionItem<T, TResult>.Result.get -> TResult
+DecisionsDotNet.DecisionItem<T, TResult>.Result.init -> void
 DecisionsDotNet.DecisionModel
 DecisionsDotNet.DecisionModel.ChooseAsync<TEnum>(DecisionsDotNet.DecisionsValue! input, DecisionsDotNet.DecisionsValue! instructions, System.Collections.Generic.IReadOnlyDictionary<TEnum, DecisionsDotNet.DecisionsValue?>! criteria, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<DecisionsDotNet.DecisionChoice<TEnum>!>!
 DecisionsDotNet.DecisionModel.ChooseAsync<TEnum>(DecisionsDotNet.DecisionsValue! input, DecisionsDotNet.DecisionsValue! instructions, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<DecisionsDotNet.DecisionChoice<TEnum>!>!
 DecisionsDotNet.DecisionModel.Client.get -> DecisionsDotNet.IDecisionsClient!
+DecisionsDotNet.DecisionModel.DecideAsync<T>(DecisionsDotNet.DecisionsValue! input, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<T!>!
+DecisionsDotNet.DecisionModel.DecideWithResponseAsync<T>(DecisionsDotNet.DecisionsValue! input, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<DecisionsDotNet.DecisionSetResult<T!>!>!
 DecisionsDotNet.DecisionModel.DecisionModel(DecisionsDotNet.IDecisionsClient! client, string! modelId) -> void
 DecisionsDotNet.DecisionModel.EvaluateAsync(DecisionsDotNet.DecisionsRequestBuilder! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<DecisionsDotNet.DecisionsResponse!>!
 DecisionsDotNet.DecisionModel.MatchesAsync(DecisionsDotNet.DecisionsValue! input, DecisionsDotNet.DecisionsValue! instructions, double minProbability, DecisionsDotNet.NoulCriteria? criteria = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
@@ -20,6 +41,11 @@ DecisionsDotNet.DecisionModel.ScoreAsync<TEnum>(DecisionsDotNet.DecisionsValue! 
 DecisionsDotNet.DecisionModel.ScoreAsync<TEnum>(DecisionsDotNet.DecisionsValue! input, DecisionsDotNet.DecisionsValue! instructions, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<DecisionsDotNet.DecisionScore<TEnum>!>!
 DecisionsDotNet.DecisionModel.VerdictAsync(DecisionsDotNet.DecisionsValue! input, DecisionsDotNet.DecisionsValue! instructions, (double Low, double High) unsureBand, DecisionsDotNet.NoulCriteria? criteria = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<DecisionsDotNet.DecisionVerdict!>!
 DecisionsDotNet.DecisionModelExtensions
+DecisionsDotNet.DecisionQuestionAttribute
+DecisionsDotNet.DecisionQuestionAttribute.DecisionQuestionAttribute(string! instructions) -> void
+DecisionsDotNet.DecisionQuestionAttribute.Id.get -> string?
+DecisionsDotNet.DecisionQuestionAttribute.Id.set -> void
+DecisionsDotNet.DecisionQuestionAttribute.Instructions.get -> string!
 DecisionsDotNet.DecisionRefusedException
 DecisionsDotNet.DecisionRefusedException.DecisionRefusedException(string! questionId, DecisionsDotNet.DecisionsResponse! response) -> void
 DecisionsDotNet.DecisionRefusedException.QuestionId.get -> string!
@@ -36,16 +62,53 @@ DecisionsDotNet.DecisionScore<TEnum>.Levels.get -> System.Collections.Generic.IR
 DecisionsDotNet.DecisionScore<TEnum>.Response.get -> DecisionsDotNet.DecisionsResponse!
 DecisionsDotNet.DecisionScore<TEnum>.Score.get -> double
 DecisionsDotNet.DecisionScore<TEnum>.Value.get -> TEnum
+DecisionsDotNet.DecisionSetResult<T>
+DecisionsDotNet.DecisionSetResult<T>.DecisionSetResult(T Value, DecisionsDotNet.DecisionsResponse! Response) -> void
+DecisionsDotNet.DecisionSetResult<T>.Response.get -> DecisionsDotNet.DecisionsResponse!
+DecisionsDotNet.DecisionSetResult<T>.Response.init -> void
+DecisionsDotNet.DecisionSetResult<T>.Value.get -> T
+DecisionsDotNet.DecisionSetResult<T>.Value.init -> void
 DecisionsDotNet.DecisionVerdict
 DecisionsDotNet.DecisionVerdict.Answer.get -> DecisionsDotNet.NoulAnswer?
 DecisionsDotNet.DecisionVerdict.Outcome.get -> DecisionsDotNet.VerdictOutcome
 DecisionsDotNet.DecisionVerdict.Probability.get -> double?
 DecisionsDotNet.DecisionVerdict.Response.get -> DecisionsDotNet.DecisionsResponse!
+DecisionsDotNet.NoulAttribute
+DecisionsDotNet.NoulAttribute.MinProbability.get -> double
+DecisionsDotNet.NoulAttribute.MinProbability.set -> void
+DecisionsDotNet.NoulAttribute.NoulAttribute(string! instructions) -> void
+DecisionsDotNet.NoulAttribute.UnsureMax.get -> double
+DecisionsDotNet.NoulAttribute.UnsureMax.set -> void
+DecisionsDotNet.NoulAttribute.UnsureMin.get -> double
+DecisionsDotNet.NoulAttribute.UnsureMin.set -> void
+DecisionsDotNet.NoulAttribute.WhenFalse.get -> string?
+DecisionsDotNet.NoulAttribute.WhenFalse.set -> void
+DecisionsDotNet.NoulAttribute.WhenTrue.get -> string?
+DecisionsDotNet.NoulAttribute.WhenTrue.set -> void
+DecisionsDotNet.ScoreAttribute
+DecisionsDotNet.ScoreAttribute.Levels.get -> System.Collections.Generic.IReadOnlyList<string!>!
+DecisionsDotNet.ScoreAttribute.ScoreAttribute(string! instructions, params string![]! levels) -> void
 DecisionsDotNet.VerdictOutcome
 DecisionsDotNet.VerdictOutcome.No = 1 -> DecisionsDotNet.VerdictOutcome
 DecisionsDotNet.VerdictOutcome.Refused = 3 -> DecisionsDotNet.VerdictOutcome
 DecisionsDotNet.VerdictOutcome.Unsure = 2 -> DecisionsDotNet.VerdictOutcome
 DecisionsDotNet.VerdictOutcome.Yes = 0 -> DecisionsDotNet.VerdictOutcome
+static DecisionsDotNet.DecisionCollectionExtensions.GroupByChoiceAsync<TEnum, T>(this DecisionsDotNet.DecisionModel! model, System.Collections.Generic.IAsyncEnumerable<T>! source, System.Func<T, DecisionsDotNet.DecisionsValue!>! selector, string! instructions, DecisionsDotNet.DecisionCollectionOptions<T>! options, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<DecisionsDotNet.DecisionGroup<TEnum, T>!>!
+static DecisionsDotNet.DecisionCollectionExtensions.GroupByChoiceAsync<TEnum, T>(this DecisionsDotNet.DecisionModel! model, System.Collections.Generic.IAsyncEnumerable<T>! source, System.Func<T, DecisionsDotNet.DecisionsValue!>! selector, string! instructions, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<DecisionsDotNet.DecisionGroup<TEnum, T>!>!
+static DecisionsDotNet.DecisionCollectionExtensions.GroupByChoiceAsync<TEnum, T>(this DecisionsDotNet.DecisionModel! model, System.Collections.Generic.IEnumerable<T>! source, System.Func<T, DecisionsDotNet.DecisionsValue!>! selector, string! instructions, DecisionsDotNet.DecisionCollectionOptions<T>! options, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<DecisionsDotNet.DecisionGroup<TEnum, T>!>!
+static DecisionsDotNet.DecisionCollectionExtensions.GroupByChoiceAsync<TEnum, T>(this DecisionsDotNet.DecisionModel! model, System.Collections.Generic.IEnumerable<T>! source, System.Func<T, DecisionsDotNet.DecisionsValue!>! selector, string! instructions, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<DecisionsDotNet.DecisionGroup<TEnum, T>!>!
+static DecisionsDotNet.DecisionCollectionExtensions.OrderByScoreAsync<TEnum, T>(this DecisionsDotNet.DecisionModel! model, System.Collections.Generic.IAsyncEnumerable<T>! source, System.Func<T, DecisionsDotNet.DecisionsValue!>! selector, string! instructions, DecisionsDotNet.DecisionCollectionOptions<T>! options, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<DecisionsDotNet.DecisionItem<T, DecisionsDotNet.DecisionScore<TEnum>!>!>!>!
+static DecisionsDotNet.DecisionCollectionExtensions.OrderByScoreAsync<TEnum, T>(this DecisionsDotNet.DecisionModel! model, System.Collections.Generic.IAsyncEnumerable<T>! source, System.Func<T, DecisionsDotNet.DecisionsValue!>! selector, string! instructions, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<DecisionsDotNet.DecisionItem<T, DecisionsDotNet.DecisionScore<TEnum>!>!>!>!
+static DecisionsDotNet.DecisionCollectionExtensions.OrderByScoreAsync<TEnum, T>(this DecisionsDotNet.DecisionModel! model, System.Collections.Generic.IEnumerable<T>! source, System.Func<T, DecisionsDotNet.DecisionsValue!>! selector, string! instructions, DecisionsDotNet.DecisionCollectionOptions<T>! options, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<DecisionsDotNet.DecisionItem<T, DecisionsDotNet.DecisionScore<TEnum>!>!>!>!
+static DecisionsDotNet.DecisionCollectionExtensions.OrderByScoreAsync<TEnum, T>(this DecisionsDotNet.DecisionModel! model, System.Collections.Generic.IEnumerable<T>! source, System.Func<T, DecisionsDotNet.DecisionsValue!>! selector, string! instructions, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<DecisionsDotNet.DecisionItem<T, DecisionsDotNet.DecisionScore<TEnum>!>!>!>!
+static DecisionsDotNet.DecisionCollectionExtensions.PartitionAsync<T>(this DecisionsDotNet.DecisionModel! model, System.Collections.Generic.IAsyncEnumerable<T>! source, System.Func<T, DecisionsDotNet.DecisionsValue!>! selector, string! instructions, double minProbability, DecisionsDotNet.DecisionCollectionOptions<T>! options, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<(System.Collections.Generic.IReadOnlyList<T>! Matching, System.Collections.Generic.IReadOnlyList<T>! NotMatching)>!
+static DecisionsDotNet.DecisionCollectionExtensions.PartitionAsync<T>(this DecisionsDotNet.DecisionModel! model, System.Collections.Generic.IAsyncEnumerable<T>! source, System.Func<T, DecisionsDotNet.DecisionsValue!>! selector, string! instructions, double minProbability, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<(System.Collections.Generic.IReadOnlyList<T>! Matching, System.Collections.Generic.IReadOnlyList<T>! NotMatching)>!
+static DecisionsDotNet.DecisionCollectionExtensions.PartitionAsync<T>(this DecisionsDotNet.DecisionModel! model, System.Collections.Generic.IEnumerable<T>! source, System.Func<T, DecisionsDotNet.DecisionsValue!>! selector, string! instructions, double minProbability, DecisionsDotNet.DecisionCollectionOptions<T>! options, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<(System.Collections.Generic.IReadOnlyList<T>! Matching, System.Collections.Generic.IReadOnlyList<T>! NotMatching)>!
+static DecisionsDotNet.DecisionCollectionExtensions.PartitionAsync<T>(this DecisionsDotNet.DecisionModel! model, System.Collections.Generic.IEnumerable<T>! source, System.Func<T, DecisionsDotNet.DecisionsValue!>! selector, string! instructions, double minProbability, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<(System.Collections.Generic.IReadOnlyList<T>! Matching, System.Collections.Generic.IReadOnlyList<T>! NotMatching)>!
+static DecisionsDotNet.DecisionCollectionExtensions.WhereAsync<T>(this DecisionsDotNet.DecisionModel! model, System.Collections.Generic.IAsyncEnumerable<T>! source, System.Func<T, DecisionsDotNet.DecisionsValue!>! selector, string! instructions, double minProbability, DecisionsDotNet.DecisionCollectionOptions<T>! options, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<T>!
+static DecisionsDotNet.DecisionCollectionExtensions.WhereAsync<T>(this DecisionsDotNet.DecisionModel! model, System.Collections.Generic.IAsyncEnumerable<T>! source, System.Func<T, DecisionsDotNet.DecisionsValue!>! selector, string! instructions, double minProbability, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<T>!
+static DecisionsDotNet.DecisionCollectionExtensions.WhereAsync<T>(this DecisionsDotNet.DecisionModel! model, System.Collections.Generic.IEnumerable<T>! source, System.Func<T, DecisionsDotNet.DecisionsValue!>! selector, string! instructions, double minProbability, DecisionsDotNet.DecisionCollectionOptions<T>! options, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<T>!
+static DecisionsDotNet.DecisionCollectionExtensions.WhereAsync<T>(this DecisionsDotNet.DecisionModel! model, System.Collections.Generic.IEnumerable<T>! source, System.Func<T, DecisionsDotNet.DecisionsValue!>! selector, string! instructions, double minProbability, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<T>!
 static DecisionsDotNet.DecisionModelExtensions.AddDecisionModel(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! modelId) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static DecisionsDotNet.DecisionModelExtensions.AddKeyedDecisionModel(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, object! serviceKey, string! modelId, object? clientServiceKey = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static DecisionsDotNet.DecisionModelExtensions.ForModel(this DecisionsDotNet.IDecisionsClient! client, string! modelId) -> DecisionsDotNet.DecisionModel!

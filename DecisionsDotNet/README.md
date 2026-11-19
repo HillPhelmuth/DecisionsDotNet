@@ -319,6 +319,46 @@ var queue = route.SelectedProbability < 0.6 ? Queue.ManualReview : route.Value s
 
 Every result keeps its evidence: the probability or distribution, the raw `Answer`, and the full `Response` with model and usage. Failures never turn into answers. Provider and network errors propagate as before, invalid probabilities or labels throw `JsonException`, and a refusal throws `DecisionRefusedException` from every verb except `VerdictAsync`, which reports it as `Refused`.
 
+### Several questions in one request
+
+`DecideAsync<T>` asks every question declared on a class in one request and returns it populated. Properties can be the rich result types or plain values: `[Noul]` fits `DecisionVerdict` (with `UnsureMin`/`UnsureMax`), `bool` (with `MinProbability`), or `double`; `[Choice]` fits `DecisionChoice<TEnum>` or the enum; `[Score]` fits `DecisionScore<TEnum>` or the enum, or `int`, `double` and `DecisionScore` when you pass text levels.
+
+```csharp
+public sealed class TicketTriage
+{
+    [Noul("Does this require immediate attention?", UnsureMin = 0.3, UnsureMax = 0.7)]
+    public DecisionVerdict Urgent { get; init; } = null!;
+
+    [Choice("Which team should handle this request?")]
+    public DecisionChoice<Team> Team { get; init; } = null!;
+
+    [Score("How frustrated is the customer?")]
+    public DecisionScore<Frustration> Mood { get; init; } = null!;
+}
+
+TicketTriage triage = await model.DecideAsync<TicketTriage>(ticket.Text, ct);
+```
+
+The class needs a public parameterless constructor and settable properties, and is read by reflection once per type, so `DecideAsync` is not trim or AOT safe. `DecideWithResponseAsync` also returns the response for logging and usage.
+
+### Collections
+
+The collection verbs ask one question about every item and pack items into batched requests, so 200 items with the default `ItemsPerRequest` of 10 is 20 requests, not 200. They accept `IEnumerable<T>` or `IAsyncEnumerable<T>`:
+
+```csharp
+var (spam, ham) = await model.PartitionAsync(messages, m => m.Text, "Is this unsolicited marketing?", minProbability: 0.8, ct);
+
+await foreach (var urgent in model.WhereAsync(tickets, t => t.Body, "Is the customer reporting an outage?", minProbability: 0.75, ct))
+    await PageOnCallAsync(urgent, ct);
+
+await foreach (var group in model.GroupByChoiceAsync<Team, Ticket>(tickets, t => t.Body, "Which team should handle this?", ct))
+    await DispatchBatchAsync(group.Key, group.Items, ct);
+
+var byMood = await model.OrderByScoreAsync<Frustration, Ticket>(tickets, t => t.Body, "How frustrated is the customer?", ct);
+```
+
+`WhereAsync` yields matches a batch at a time. `GroupByChoiceAsync` keeps each item's `DecisionChoice` in `group.Results`. Pass `DecisionCollectionOptions<T>` to change `ItemsPerRequest` or add a `Prefilter` that settles obvious items without sending them. A failed request or a refusal stops the operation with its exception.
+
 To inject a bound model, register it after the client: `services.AddDecisionModel("typesafe/jev-1.14")`, or `AddKeyedDecisionModel(key, modelId, clientServiceKey)` beside keyed clients. Hand-built requests still name their model; `DecisionModel.EvaluateAsync(builder)` builds one with the bound model.
 
 For unit tests, [DecisionsDotNet.Testing](https://www.nuget.org/packages/DecisionsDotNet.Testing) has a scripted `FakeDecisionsClient` and a `RecordingDecisionsClient`.

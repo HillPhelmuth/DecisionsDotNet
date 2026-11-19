@@ -11,6 +11,8 @@ Added, all experimental under `DECISIONS002`:
 - `IDecisionsClient.ForModel(modelId)` and `DecisionModel`, a client bound to one model. `AddDecisionModel` and `AddKeyedDecisionModel` register one for injection. The low-level request API is unchanged and still names its model.
 - Conditional verbs on `DecisionModel`: `MatchesAsync` (caller-chosen threshold), `ProbabilityAsync`, `VerdictAsync` (Yes, No, Unsure, Refused), `ChooseAsync<TEnum>`, `ScoreAsync<TEnum>`, and a text-level `ScoreAsync`.
 - Result types `DecisionVerdict`, `DecisionChoice<TEnum>`, `DecisionScore<TEnum>` and `DecisionScore`, each keeping the raw answer and full response, and `DecisionRefusedException`.
+- Typed decision sets: `DecideAsync<T>` and `DecideWithResponseAsync<T>` ask every `[Noul]`, `[Choice]` and `[Score]` property of a class in one request.
+- Batched collection verbs on `DecisionModel`: `WhereAsync`, `PartitionAsync`, `GroupByChoiceAsync<TEnum, T>` and `OrderByScoreAsync<TEnum, T>`, over `IEnumerable<T>` or `IAsyncEnumerable<T>`, built on `EvaluateBatchesAsync`, with `DecisionCollectionOptions<T>` for batch size and a prefilter.
 
 ### DecisionsDotNet.Testing (new)
 

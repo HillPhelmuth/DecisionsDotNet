@@ -147,6 +147,31 @@ public sealed class DecisionModel
         return DecisionInterpretation.Score(response, QuestionId, question.Criteria.Count);
     }
 
+    /// <summary>
+    /// Asks every question declared on <typeparamref name="T"/> about the input in one request, and returns a populated instance.
+    /// Mark properties with <see cref="NoulAttribute"/>, <see cref="ChoiceAttribute"/>, or <see cref="ScoreAttribute"/>.
+    /// </summary>
+    /// <exception cref="InvalidOperationException"><typeparamref name="T"/> is not a valid decision set. No request is sent.</exception>
+    /// <exception cref="DecisionRefusedException">The model refused a question whose property cannot hold a refusal; only <see cref="DecisionVerdict"/> can.</exception>
+    [RequiresUnreferencedCode(DecisionSets.TrimMessage)]
+    [RequiresDynamicCode(DecisionSets.AotMessage)]
+    public async Task<T> DecideAsync<[DynamicallyAccessedMembers(DecisionSets.Members)] T>(DecisionsValue input,
+        CancellationToken cancellationToken = default) where T : class
+        => (await DecideWithResponseAsync<T>(input, cancellationToken).ConfigureAwait(false)).Value;
+
+    /// <summary>Like <see cref="DecideAsync{T}"/>, and also returns the response, for logging and usage accounting.</summary>
+    [RequiresUnreferencedCode(DecisionSets.TrimMessage)]
+    [RequiresDynamicCode(DecisionSets.AotMessage)]
+    public async Task<DecisionSetResult<T>> DecideWithResponseAsync<[DynamicallyAccessedMembers(DecisionSets.Members)] T>(
+        DecisionsValue input, CancellationToken cancellationToken = default) where T : class
+    {
+        ArgumentNullException.ThrowIfNull(input);
+        var plan = DecisionSetPlan.For(typeof(T));
+        var response = await Client.EvaluateAsync(new DecisionsRequest(input, plan.Questions, ModelId), cancellationToken)
+            .ConfigureAwait(false);
+        return new((T)plan.Read(response), response);
+    }
+
     private async Task<DecisionChoice<TEnum>> ChooseCoreAsync<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)] TEnum>(
         DecisionsValue input, DecisionsValue instructions, (TEnum Value, DecisionsValue? Criterion)[] options,
         CancellationToken cancellationToken)
