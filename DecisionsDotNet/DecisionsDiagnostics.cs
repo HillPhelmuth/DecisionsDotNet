@@ -6,5 +6,8 @@ internal static class DecisionsDiagnostics
     /// <summary>The OpenAI Decisions client and its registrations, which are not yet verified against the live API.</summary>
     internal const string OpenAIClient = "DECISIONS001";
 
+    /// <summary>The semantic conditional layer: <see cref="DecisionModel"/>, its verbs and result types, and the test doubles.</summary>
+    internal const string Conditions = "DECISIONS002";
+
     internal const string UrlFormat = "https://github.com/HillPhelmuth/JevDotNet/blob/main/CHANGELOG.md#experimental-apis";
 }

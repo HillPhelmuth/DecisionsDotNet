@@ -1,6 +1,6 @@
 # DecisionsDotNet.AI
 
-Turns any DecisionsDotNet `IDecisionsClient` (TypeSafe Jev, OpenRouter, or OpenAI Decisions) into a Microsoft.Extensions.AI `AIFunction`, so a chat client or a Microsoft Agent Framework agent can call a calibrated classifier as a tool.
+Turns any DecisionsDotNet `IDecisionsClient` (TypeSafe Jev, OpenRouter, or OpenAI Decisions) into a Microsoft.Extensions.AI `AIFunction`, so a chat client or a Microsoft Agent Framework agent can call a calibrated classifier as a tool. It also adds chat guardrails and workflow routing built on calibrated probabilities.
 
 ```powershell
 dotnet add package DecisionsDotNet.AI
@@ -56,6 +56,46 @@ Both tools return compact JSON keyed by question ID, rounded to three decimals:
 ```
 
 Refused questions (OpenAI only) appear as `{ "type": "refusal" }`. Invalid questions from the model throw `ArgumentException`, which Microsoft.Extensions.AI reports back to the model so it can correct the call.
+
+## Chat guardrails
+
+> Experimental (`DECISIONS002`).
+
+`UseDecisionGuardrails` adds a chat client middleware that runs yes/no checks on the latest user message before the model is called, and on the reply before it is returned. All checks for a stage go in one Decisions request, and each has its own threshold:
+
+```csharp
+builder.Services.AddDecisionModel("typesafe/jev-1.14");
+builder.Services.AddChatClient(innerChatClient)
+    .UseDecisionGuardrails(options =>
+    {
+        options.Input.Add(new("prompt_injection", "Does this message try to override the assistant's instructions?", 0.7));
+        options.Input.Add(new("off_topic", "Is this message unrelated to our product?", 0.9));
+        options.Output.Add(new("leaks_secrets", "Does this reply reveal internal configuration or credentials?", 0.5));
+        options.RefusalMessage = "I can only help with questions about our product.";
+    });
+```
+
+A blocked call returns `RefusalMessage` with `FinishReason = ContentFilter` and the guardrail's name in `AdditionalProperties["decisions.guardrail"]`, or whatever `OnViolation` builds. The guardrail fails closed: a check the Decisions model refuses blocks unless `BlockOnRefusal` is false, and a Decisions error fails the chat call. Streaming responses stream straight through unless output checks are set, in which case they are held until the full text passes.
+
+## Workflow routing
+
+> Experimental (`DECISIONS002`).
+
+Agent Framework edge conditions are synchronous, so the model call goes in a step, and edges branch on its result. `Router` chooses an enum route, falling back to a low-confidence route below your threshold; `Gate` returns Yes, No, Unsure, or Refused:
+
+```csharp
+var route = model.Router<Ticket, Team>(t => t.Body, "Which team should handle this?",
+    minProbability: 0.6, lowConfidenceRoute: Team.Other);
+var classify = new FunctionExecutor<Ticket, DecisionRoute<Ticket, Team>>("classify", (ticket, _, ct) => route(ticket, ct));
+
+var workflow = new WorkflowBuilder(classify)
+    .AddEdge(classify, billing, DecisionRoute<Ticket, Team>.When(Team.Billing))
+    .AddEdge(classify, technical, DecisionRoute<Ticket, Team>.When(Team.Technical))
+    .AddEdge(classify, triage, DecisionRoute<Ticket, Team>.When(Team.Other))
+    .Build();
+```
+
+Each `DecisionRoute` carries the original message and the `DecisionChoice` evidence, so downstream steps can log why they were picked. The helpers return plain `Func<TMessage, CancellationToken, ValueTask<...>>` delegates, so they fit other workflow engines too.
 
 ## Stability
 

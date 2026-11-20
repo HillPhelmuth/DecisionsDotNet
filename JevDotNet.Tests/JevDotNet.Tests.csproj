@@ -7,18 +7,22 @@
     <IsTestProject>true</IsTestProject>
     <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
     <IsPackable>false</IsPackable>
-    <!-- The tests exercise the experimental OpenAI client. -->
-    <NoWarn>$(NoWarn);DECISIONS001</NoWarn>
+    <!-- The tests exercise the experimental OpenAI client and conditional layer. -->
+    <NoWarn>$(NoWarn);DECISIONS001;DECISIONS002</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <Using Include="Xunit" />
     <PackageReference Include="xunit.v3" Version="4.0.2" />
     <!-- The AI tool checks compile the README agent wiring against Microsoft Agent Framework. -->
     <PackageReference Include="Microsoft.Agents.AI" Version="1.22.0" />
+    <!-- The workflow routing checks run a real Agent Framework workflow. -->
+    <PackageReference Include="Microsoft.Agents.AI.Workflows" Version="1.22.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ExtractionsDotNet\ExtractionsDotNet.csproj" />
     <ProjectReference Include="..\DecisionsDotNet\DecisionsDotNet.csproj" />
     <ProjectReference Include="..\DecisionsDotNet.AI\DecisionsDotNet.AI.csproj" />
+    <ProjectReference Include="..\DecisionsDotNet.Testing\DecisionsDotNet.Testing.csproj" />
+    <ProjectReference Include="..\DecisionsDotNet.Caching\DecisionsDotNet.Caching.csproj" />
   </ItemGroup>
 </Project>

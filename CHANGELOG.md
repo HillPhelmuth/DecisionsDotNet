@@ -2,6 +2,40 @@
 
 `DecisionsDotNet` and `DecisionsDotNet.AI` share a version. `ExtractionsDotNet` versions on its own. From 1.0.0 all three follow [semantic versioning](https://semver.org/).
 
+## 1.1.0-preview.1 (unreleased)
+
+### DecisionsDotNet
+
+Added, all experimental under `DECISIONS002`:
+
+- `IDecisionsClient.ForModel(modelId)` and `DecisionModel`, a client bound to one model. `AddDecisionModel` and `AddKeyedDecisionModel` register one for injection. The low-level request API is unchanged and still names its model.
+- Conditional verbs on `DecisionModel`: `MatchesAsync` (caller-chosen threshold), `ProbabilityAsync`, `VerdictAsync` (Yes, No, Unsure, Refused), `ChooseAsync<TEnum>`, `ScoreAsync<TEnum>`, and a text-level `ScoreAsync`.
+- Result types `DecisionVerdict`, `DecisionChoice<TEnum>`, `DecisionScore<TEnum>` and `DecisionScore`, each keeping the raw answer and full response, and `DecisionRefusedException`.
+- Typed decision sets: `DecideAsync<T>` and `DecideWithResponseAsync<T>` ask every `[Noul]`, `[Choice]` and `[Score]` property of a class in one request.
+- Batched collection verbs on `DecisionModel`: `WhereAsync`, `PartitionAsync`, `GroupByChoiceAsync<TEnum, T>` and `OrderByScoreAsync<TEnum, T>`, over `IEnumerable<T>` or `IAsyncEnumerable<T>`, built on `EvaluateBatchesAsync`, with `DecisionCollectionOptions<T>` for batch size and a prefilter.
+
+- Client pipeline in `DecisionsDotNet.Pipeline`: `DelegatingDecisionsClient`, `DecisionsClientBuilder`, `AddDecisionsClient` and `AddKeyedDecisionsClient`, with `UseFallback`, `UseLogging` and `UseOpenTelemetry`.
+
+### DecisionsDotNet.AI
+
+Added, experimental under `DECISIONS002`:
+
+- `UseDecisionGuardrails` and `DecisionGuardrailChatClient`: calibrated input and output checks around any `IChatClient`, failing closed.
+- `Router` and `Gate` workflow steps, with `DecisionRoute<TMessage, TEnum>.When` and `DecisionGate<TMessage>.When` edge conditions for Agent Framework workflows.
+- Now depends on `Microsoft.Extensions.AI` (for `ChatClientBuilder`) instead of only `Microsoft.Extensions.AI.Abstractions`.
+
+### DecisionsDotNet.Caching (new)
+
+- `UseCaching` and `CachingDecisionsClient`, which cache successful evaluations in `HybridCache` by a content hash of the request. Experimental under `DECISIONS002`. Versions with `DecisionsDotNet`.
+
+### Docs
+
+- [docs/recipes.md](docs/recipes.md): ASP.NET Core endpoint filter, FluentValidation, MediatR, and multi-condition examples, compiled against the packed packages in the package smoke check.
+
+### DecisionsDotNet.Testing (new)
+
+- `FakeDecisionsClient`, which answers from scripted rules, and `RecordingDecisionsClient`, which wraps any client and records its calls. Experimental under `DECISIONS002`. Versions with `DecisionsDotNet`.
+
 ## 1.0.0 (2026-11-15)
 
 The first stable release. It renames the remaining `Jev` types, makes a few shapes explicit, and brings `ExtractionsDotNet` level with the Decisions packages. Everything below is a change from 0.3.0-preview.
@@ -67,6 +101,7 @@ Members marked `[Experimental]` produce a compiler error until you suppress thei
 | Diagnostic | Members | Why |
 | --- | --- | --- |
 | `DECISIONS001` | `OpenAIDecisionsClient`, `OpenAIDecisionsClientOptions`, `AddOpenAIDecisionsClient`, `AddKeyedOpenAIDecisionsClient` | Verified against recorded response shapes, not yet against the live OpenAI Decisions API. |
+| `DECISIONS002` | `DecisionModel`, its verbs, result types, decision sets and collection verbs, the `DecisionsDotNet.Pipeline` namespace, the guardrail and workflow helpers in `DecisionsDotNet.AI`, and everything in `DecisionsDotNet.Testing` and `DecisionsDotNet.Caching` (added after 1.0.0) | New in 1.1; the shape may change after real use. |
 
 To use them, add `<NoWarn>$(NoWarn);DECISIONS001</NoWarn>` to your project file, or wrap the code in `#pragma warning disable DECISIONS001`.
 
