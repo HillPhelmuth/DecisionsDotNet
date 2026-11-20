@@ -20,8 +20,6 @@ dotnet add package ExtractionsDotNet
 
 [docs/recipes.md](docs/recipes.md) shows the semantic conditional verbs in ASP.NET Core endpoint filters, FluentValidation rules, and MediatR behaviors.
 
-The repository, demo, and test project keep their original `JevDotNet` names.
-
 ## Demo
 
 [JevDotNet.Demo](JevDotNet.Demo/README.md) is a Blazor Server app with support triage, image decisions, bulk triage, Jev as Judge, a chase game, and the Extractions Lab. It needs an OpenRouter API key:
