@@ -96,35 +96,3 @@ public sealed class DecisionsClientBuilder
             => throw new InvalidOperationException($"No service provider was passed to Build, so {serviceType.Name} cannot be resolved.");
     }
 }
-
-/// <summary>Registers a composed <see cref="IDecisionsClient"/> pipeline.</summary>
-[Experimental(DecisionsDiagnostics.Conditions, UrlFormat = DecisionsDiagnostics.UrlFormat)]
-public static class DecisionsClientBuilderServiceCollectionExtensions
-{
-    /// <summary>
-    /// Registers the pipeline as the unkeyed <see cref="IDecisionsClient"/>. Resolve the inner client by key, such as from
-    /// <c>AddKeyedOpenRouterDecisionsClient</c>; resolving the unkeyed client from inside the factory would recurse.
-    /// </summary>
-    /// <param name="services">The service collection.</param>
-    /// <param name="innerClientFactory">Creates the provider client the pipeline wraps.</param>
-    /// <param name="lifetime">The registration lifetime. Transient by default, matching the provider clients, whose HTTP handlers rotate.</param>
-    public static DecisionsClientBuilder AddDecisionsClient(this IServiceCollection services,
-        Func<IServiceProvider, IDecisionsClient> innerClientFactory, ServiceLifetime lifetime = ServiceLifetime.Transient)
-    {
-        ArgumentNullException.ThrowIfNull(services);
-        var builder = new DecisionsClientBuilder(innerClientFactory);
-        services.Add(new ServiceDescriptor(typeof(IDecisionsClient), provider => builder.Build(provider), lifetime));
-        return builder;
-    }
-
-    /// <summary>Registers the pipeline as a keyed <see cref="IDecisionsClient"/>.</summary>
-    public static DecisionsClientBuilder AddKeyedDecisionsClient(this IServiceCollection services, object serviceKey,
-        Func<IServiceProvider, IDecisionsClient> innerClientFactory, ServiceLifetime lifetime = ServiceLifetime.Transient)
-    {
-        ArgumentNullException.ThrowIfNull(services);
-        ArgumentNullException.ThrowIfNull(serviceKey);
-        var builder = new DecisionsClientBuilder(innerClientFactory);
-        services.Add(new ServiceDescriptor(typeof(IDecisionsClient), serviceKey, (provider, _) => builder.Build(provider), lifetime));
-        return builder;
-    }
-}
