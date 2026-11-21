@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using Azure.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using DecisionsDotNet.Pipeline;
@@ -207,6 +208,210 @@ public static class DecisionsServiceCollectionExtensions
         var apiKey = configuration["OpenAI:ApiKey"];
         return !string.IsNullOrWhiteSpace(apiKey) ? apiKey
             : throw new InvalidOperationException("Configure OpenAI:ApiKey before registering the OpenAI Decisions client.");
+    }
+
+    /// <summary>Registers the Microsoft Foundry client as <see cref="IDecisionsClient"/>, authenticating with an API key.</summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="endpoint">The Foundry endpoint, such as <c>https://my-project.services.ai.azure.com/providers/microsoft</c>.</param>
+    /// <param name="deploymentName">The model deployment every request is sent to.</param>
+    /// <param name="apiKey">The resource's API key.</param>
+    /// <param name="options">The token scope and retry settings.</param>
+    [Experimental(DecisionsDiagnostics.AzureClients, UrlFormat = DecisionsDiagnostics.UrlFormat)]
+    public static IHttpClientBuilder AddFoundryDecisionsClient(this IServiceCollection services,
+        Uri endpoint, string deploymentName, string apiKey, FoundryDecisionsClientOptions? options = null)
+    {
+        RequireAzure(endpoint, deploymentName);
+        RequireKey(apiKey, "Foundry");
+        return Register(services, null, "Foundry",
+            httpClient => new FoundryDecisionsClient(endpoint, deploymentName, apiKey, httpClient, options));
+    }
+
+    /// <summary>Registers the Microsoft Foundry client as <see cref="IDecisionsClient"/>, authenticating with Microsoft Entra ID.</summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="endpoint">The Foundry endpoint, such as <c>https://my-project.services.ai.azure.com/providers/microsoft</c>.</param>
+    /// <param name="deploymentName">The model deployment every request is sent to.</param>
+    /// <param name="credential">A credential such as <c>DefaultAzureCredential</c>. It is shared by every client the registration creates.</param>
+    /// <param name="options">The token scope and retry settings.</param>
+    [Experimental(DecisionsDiagnostics.AzureClients, UrlFormat = DecisionsDiagnostics.UrlFormat)]
+    public static IHttpClientBuilder AddFoundryDecisionsClient(this IServiceCollection services,
+        Uri endpoint, string deploymentName, TokenCredential credential, FoundryDecisionsClientOptions? options = null)
+    {
+        RequireAzure(endpoint, deploymentName);
+        ArgumentNullException.ThrowIfNull(credential);
+        return Register(services, null, "Foundry",
+            httpClient => new FoundryDecisionsClient(endpoint, deploymentName, credential, httpClient, options));
+    }
+
+    /// <summary>
+    /// Registers the Microsoft Foundry client as <see cref="IDecisionsClient"/> from the <c>Foundry:Endpoint</c>,
+    /// <c>Foundry:DeploymentName</c>, and <c>Foundry:ApiKey</c> configuration values. Without an API key, <paramref name="credential"/> is used.
+    /// </summary>
+    [Experimental(DecisionsDiagnostics.AzureClients, UrlFormat = DecisionsDiagnostics.UrlFormat)]
+    public static IHttpClientBuilder AddFoundryDecisionsClient(this IServiceCollection services,
+        IConfiguration configuration, TokenCredential? credential = null, FoundryDecisionsClientOptions? options = null)
+    {
+        var (endpoint, deploymentName, apiKey) = AzureSettings(configuration, "Foundry", credential);
+        return apiKey is not null
+            ? services.AddFoundryDecisionsClient(endpoint, deploymentName, apiKey, options)
+            : services.AddFoundryDecisionsClient(endpoint, deploymentName, credential!, options);
+    }
+
+    /// <summary>Registers a Microsoft Foundry client as a keyed <see cref="IDecisionsClient"/>, authenticating with an API key.</summary>
+    [Experimental(DecisionsDiagnostics.AzureClients, UrlFormat = DecisionsDiagnostics.UrlFormat)]
+    public static IHttpClientBuilder AddKeyedFoundryDecisionsClient(this IServiceCollection services, object serviceKey,
+        Uri endpoint, string deploymentName, string apiKey, FoundryDecisionsClientOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(serviceKey);
+        RequireAzure(endpoint, deploymentName);
+        RequireKey(apiKey, "Foundry");
+        return Register(services, serviceKey, "Foundry",
+            httpClient => new FoundryDecisionsClient(endpoint, deploymentName, apiKey, httpClient, options));
+    }
+
+    /// <summary>Registers a Microsoft Foundry client as a keyed <see cref="IDecisionsClient"/>, authenticating with Microsoft Entra ID.</summary>
+    [Experimental(DecisionsDiagnostics.AzureClients, UrlFormat = DecisionsDiagnostics.UrlFormat)]
+    public static IHttpClientBuilder AddKeyedFoundryDecisionsClient(this IServiceCollection services, object serviceKey,
+        Uri endpoint, string deploymentName, TokenCredential credential, FoundryDecisionsClientOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(serviceKey);
+        RequireAzure(endpoint, deploymentName);
+        ArgumentNullException.ThrowIfNull(credential);
+        return Register(services, serviceKey, "Foundry",
+            httpClient => new FoundryDecisionsClient(endpoint, deploymentName, credential, httpClient, options));
+    }
+
+    /// <summary>Registers a keyed Microsoft Foundry client from the <c>Foundry</c> configuration section, using <paramref name="credential"/> when no API key is configured.</summary>
+    [Experimental(DecisionsDiagnostics.AzureClients, UrlFormat = DecisionsDiagnostics.UrlFormat)]
+    public static IHttpClientBuilder AddKeyedFoundryDecisionsClient(this IServiceCollection services, object serviceKey,
+        IConfiguration configuration, TokenCredential? credential = null, FoundryDecisionsClientOptions? options = null)
+    {
+        var (endpoint, deploymentName, apiKey) = AzureSettings(configuration, "Foundry", credential);
+        return apiKey is not null
+            ? services.AddKeyedFoundryDecisionsClient(serviceKey, endpoint, deploymentName, apiKey, options)
+            : services.AddKeyedFoundryDecisionsClient(serviceKey, endpoint, deploymentName, credential!, options);
+    }
+
+    /// <summary>Registers the Azure OpenAI client as <see cref="IDecisionsClient"/>, authenticating with an API key.</summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="endpoint">The resource endpoint, such as <c>https://my-resource.openai.azure.com/</c>.</param>
+    /// <param name="deploymentName">The model deployment every request is sent to.</param>
+    /// <param name="apiKey">The resource's API key.</param>
+    /// <param name="options">The token scope and retry settings.</param>
+    [Experimental(DecisionsDiagnostics.AzureClients, UrlFormat = DecisionsDiagnostics.UrlFormat)]
+    public static IHttpClientBuilder AddAzureOpenAIDecisionsClient(this IServiceCollection services,
+        Uri endpoint, string deploymentName, string apiKey, AzureOpenAIDecisionsClientOptions? options = null)
+    {
+        RequireAzure(endpoint, deploymentName);
+        RequireKey(apiKey, "Azure OpenAI");
+        return Register(services, null, "AzureOpenAI",
+            httpClient => new AzureOpenAIDecisionsClient(endpoint, deploymentName, apiKey, httpClient, options));
+    }
+
+    /// <summary>Registers the Azure OpenAI client as <see cref="IDecisionsClient"/>, authenticating with Microsoft Entra ID.</summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="endpoint">The resource endpoint, such as <c>https://my-resource.openai.azure.com/</c>.</param>
+    /// <param name="deploymentName">The model deployment every request is sent to.</param>
+    /// <param name="credential">A credential such as <c>DefaultAzureCredential</c>. It is shared by every client the registration creates.</param>
+    /// <param name="options">The token scope and retry settings.</param>
+    [Experimental(DecisionsDiagnostics.AzureClients, UrlFormat = DecisionsDiagnostics.UrlFormat)]
+    public static IHttpClientBuilder AddAzureOpenAIDecisionsClient(this IServiceCollection services,
+        Uri endpoint, string deploymentName, TokenCredential credential, AzureOpenAIDecisionsClientOptions? options = null)
+    {
+        RequireAzure(endpoint, deploymentName);
+        ArgumentNullException.ThrowIfNull(credential);
+        return Register(services, null, "AzureOpenAI",
+            httpClient => new AzureOpenAIDecisionsClient(endpoint, deploymentName, credential, httpClient, options));
+    }
+
+    /// <summary>
+    /// Registers the Azure OpenAI client as <see cref="IDecisionsClient"/> from the <c>AzureOpenAI:Endpoint</c>,
+    /// <c>AzureOpenAI:DeploymentName</c>, and <c>AzureOpenAI:ApiKey</c> configuration values. Without an API key, <paramref name="credential"/> is used.
+    /// </summary>
+    [Experimental(DecisionsDiagnostics.AzureClients, UrlFormat = DecisionsDiagnostics.UrlFormat)]
+    public static IHttpClientBuilder AddAzureOpenAIDecisionsClient(this IServiceCollection services,
+        IConfiguration configuration, TokenCredential? credential = null, AzureOpenAIDecisionsClientOptions? options = null)
+    {
+        var (endpoint, deploymentName, apiKey) = AzureSettings(configuration, "AzureOpenAI", credential);
+        return apiKey is not null
+            ? services.AddAzureOpenAIDecisionsClient(endpoint, deploymentName, apiKey, options)
+            : services.AddAzureOpenAIDecisionsClient(endpoint, deploymentName, credential!, options);
+    }
+
+    /// <summary>Registers an Azure OpenAI client as a keyed <see cref="IDecisionsClient"/>, authenticating with an API key.</summary>
+    [Experimental(DecisionsDiagnostics.AzureClients, UrlFormat = DecisionsDiagnostics.UrlFormat)]
+    public static IHttpClientBuilder AddKeyedAzureOpenAIDecisionsClient(this IServiceCollection services, object serviceKey,
+        Uri endpoint, string deploymentName, string apiKey, AzureOpenAIDecisionsClientOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(serviceKey);
+        RequireAzure(endpoint, deploymentName);
+        RequireKey(apiKey, "Azure OpenAI");
+        return Register(services, serviceKey, "AzureOpenAI",
+            httpClient => new AzureOpenAIDecisionsClient(endpoint, deploymentName, apiKey, httpClient, options));
+    }
+
+    /// <summary>Registers an Azure OpenAI client as a keyed <see cref="IDecisionsClient"/>, authenticating with Microsoft Entra ID.</summary>
+    [Experimental(DecisionsDiagnostics.AzureClients, UrlFormat = DecisionsDiagnostics.UrlFormat)]
+    public static IHttpClientBuilder AddKeyedAzureOpenAIDecisionsClient(this IServiceCollection services, object serviceKey,
+        Uri endpoint, string deploymentName, TokenCredential credential, AzureOpenAIDecisionsClientOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(serviceKey);
+        RequireAzure(endpoint, deploymentName);
+        ArgumentNullException.ThrowIfNull(credential);
+        return Register(services, serviceKey, "AzureOpenAI",
+            httpClient => new AzureOpenAIDecisionsClient(endpoint, deploymentName, credential, httpClient, options));
+    }
+
+    /// <summary>Registers a keyed Azure OpenAI client from the <c>AzureOpenAI</c> configuration section, using <paramref name="credential"/> when no API key is configured.</summary>
+    [Experimental(DecisionsDiagnostics.AzureClients, UrlFormat = DecisionsDiagnostics.UrlFormat)]
+    public static IHttpClientBuilder AddKeyedAzureOpenAIDecisionsClient(this IServiceCollection services, object serviceKey,
+        IConfiguration configuration, TokenCredential? credential = null, AzureOpenAIDecisionsClientOptions? options = null)
+    {
+        var (endpoint, deploymentName, apiKey) = AzureSettings(configuration, "AzureOpenAI", credential);
+        return apiKey is not null
+            ? services.AddKeyedAzureOpenAIDecisionsClient(serviceKey, endpoint, deploymentName, apiKey, options)
+            : services.AddKeyedAzureOpenAIDecisionsClient(serviceKey, endpoint, deploymentName, credential!, options);
+    }
+
+    private static void RequireAzure(Uri endpoint, string deploymentName)
+    {
+        AzureEndpoint.Require(endpoint);
+        AzureEndpoint.RequireDeployment(deploymentName);
+    }
+
+    private static void RequireKey(string apiKey, string service)
+    {
+        if (string.IsNullOrWhiteSpace(apiKey))
+            throw new ArgumentException($"A {service} API key is required.", nameof(apiKey));
+    }
+
+    private static (Uri Endpoint, string DeploymentName, string? ApiKey) AzureSettings(
+        IConfiguration configuration, string section, TokenCredential? credential)
+    {
+        ArgumentNullException.ThrowIfNull(configuration);
+        var endpoint = configuration[$"{section}:Endpoint"];
+        var deploymentName = configuration[$"{section}:DeploymentName"];
+        var apiKey = configuration[$"{section}:ApiKey"];
+        if (!Uri.TryCreate(endpoint, UriKind.Absolute, out var uri))
+            throw new InvalidOperationException($"Configure {section}:Endpoint as an absolute HTTPS URI.");
+        if (string.IsNullOrWhiteSpace(deploymentName))
+            throw new InvalidOperationException($"Configure {section}:DeploymentName.");
+        if (string.IsNullOrWhiteSpace(apiKey) && credential is null)
+            throw new InvalidOperationException($"Configure {section}:ApiKey or pass a TokenCredential.");
+        return (uri, deploymentName, string.IsNullOrWhiteSpace(apiKey) ? null : apiKey);
+    }
+
+    private static IHttpClientBuilder Register(IServiceCollection services, object? serviceKey, string provider,
+        Func<HttpClient, IDecisionsClient> create)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        if (serviceKey is null)
+            return services.AddHttpClient($"DecisionsDotNet.{provider}").AddTypedClient<IDecisionsClient>((httpClient, _) => create(httpClient));
+
+        // A unique name per registration keeps keys with equal ToString() values on separate HTTP pipelines.
+        var name = $"DecisionsDotNet.{provider}.{Guid.NewGuid():N}";
+        services.AddKeyedTransient<IDecisionsClient>(serviceKey, (serviceProvider, _) =>
+            create(serviceProvider.GetRequiredService<IHttpClientFactory>().CreateClient(name)));
+        return services.AddHttpClient(name);
     }
 
     /// <summary>

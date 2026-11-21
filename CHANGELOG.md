@@ -2,7 +2,16 @@
 
 `DecisionsDotNet` and `DecisionsDotNet.AI` share a version. `ExtractionsDotNet` versions on its own. From 1.0.0 all three follow [semantic versioning](https://semver.org/).
 
-## 1.1.0-preview.1 (unreleased)
+## 1.1.0-preview.2 (unreleased)
+
+### DecisionsDotNet
+
+Added, experimental under `DECISIONS003`:
+
+- `FoundryDecisionsClient` for Microsoft decision models (such as Microsoft-Decision-1.1) deployed in Microsoft Foundry, at `{endpoint}/v1/systemone`, and `AzureOpenAIDecisionsClient` for the Azure OpenAI Decisions API at `{endpoint}/openai/v1/decisions`. Both take an endpoint, a deployment name, and either an API key (`api-key` header) or an Azure.Core `TokenCredential` (bearer token for `https://cognitiveservices.azure.com/.default`, cached until five minutes before it expires). `Add[Keyed]FoundryDecisionsClient` and `Add[Keyed]AzureOpenAIDecisionsClient` register them, including from the `Foundry` and `AzureOpenAI` configuration sections.
+- Now depends on `Azure.Core` for `TokenCredential`.
+
+## 1.1.0-preview.1 (2026-11-20)
 
 ### DecisionsDotNet
 
@@ -101,6 +110,7 @@ Members marked `[Experimental]` produce a compiler error until you suppress thei
 | Diagnostic | Members | Why |
 | --- | --- | --- |
 | `DECISIONS001` | `OpenAIDecisionsClient`, `OpenAIDecisionsClientOptions`, `AddOpenAIDecisionsClient`, `AddKeyedOpenAIDecisionsClient` | Verified against recorded response shapes, not yet against the live OpenAI Decisions API. |
+| `DECISIONS003` | `FoundryDecisionsClient`, `AzureOpenAIDecisionsClient`, their options, and their `Add*` registrations (added after 1.0.0) | Verified against the documented request shapes, not yet against the live Foundry and Azure OpenAI APIs. |
 | `DECISIONS002` | `DecisionModel`, its verbs, result types, decision sets and collection verbs, the `DecisionsDotNet.Pipeline` namespace, the guardrail and workflow helpers in `DecisionsDotNet.AI`, and everything in `DecisionsDotNet.Testing` and `DecisionsDotNet.Caching` (added after 1.0.0) | New in 1.1; the shape may change after real use. |
 
 To use them, add `<NoWarn>$(NoWarn);DECISIONS001</NoWarn>` to your project file, or wrap the code in `#pragma warning disable DECISIONS001`.

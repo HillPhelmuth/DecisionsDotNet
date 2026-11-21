@@ -1,6 +1,6 @@
 # DecisionsDotNet
 
-A type-safe C# client for TypeSafe AI's Jev models, through TypeSafe's direct API, OpenRouter's Decisions API, or OpenAI's Decisions API. Targets .NET 10 and uses `System.Text.Json`, `HttpClient`, and Microsoft.Extensions.Http for dependency injection.
+A type-safe C# client for TypeSafe AI's Jev models, through TypeSafe's direct API, OpenRouter's Decisions API, or OpenAI's Decisions API, and for Microsoft's decision models in Microsoft Foundry and Azure OpenAI. Targets .NET 10 and uses `System.Text.Json`, `HttpClient`, and Microsoft.Extensions.Http for dependency injection.
 
 ```powershell
 dotnet add package DecisionsDotNet
@@ -165,6 +165,48 @@ The client translates the request to OpenAI's shape and the answers back to the 
 | (none) | `refusal` answers become `RefusalAnswer`. Reading one with `GetAnswer<NoulAnswer>` throws, so use `TryGetAnswer` when refusals are possible. |
 
 Text state is sent as the `input` string, and structured state as JSON text. State containing images becomes one user message with `input_text` and `input_image` parts in the original order. Like the other clients, images must be inline base64 data URLs. Set `OpenAIDecisionsClientOptions.Organization` or `Project` to send the matching headers. The client retries HTTP 429, 500, 502, 503, and 504 and reports other failures as `DecisionsApiException` with `Service` set to `OpenAI`. Register it with `AddOpenAIDecisionsClient` (reads `OpenAI:ApiKey`) or `AddKeyedOpenAIDecisionsClient`.
+
+## Microsoft Foundry and Azure OpenAI
+
+> Both clients and their registrations are marked `[Experimental]` with diagnostic `DECISIONS003`. They follow Microsoft's documented request shapes but have not yet been checked against the live services. Add `<NoWarn>$(NoWarn);DECISIONS003</NoWarn>` to your project, or `#pragma warning disable DECISIONS003`, to use them.
+
+Both Azure clients take an endpoint, a deployment name, and either an API key or an Azure.Core `TokenCredential`, such as `DefaultAzureCredential` or `AzureCliCredential` from Azure.Identity. An API key is sent in the `api-key` header. A credential's tokens are requested for `https://cognitiveservices.azure.com/.default` (change it with the options' `TokenScope`), sent as a bearer token, and cached until five minutes before they expire. Azure routes by deployment, so the client always sends its deployment name as the model and the request's `Model` is not sent.
+
+`FoundryDecisionsClient` calls [Microsoft decision models in Foundry](https://learn.microsoft.com/en-us/azure/foundry/foundry-models/how-to/use-foundry-models-microsoft-decision), such as Microsoft-Decision-1.1, at `{endpoint}/v1/systemone`. It sends the same Noul, Choice, and Score questions as OpenRouter and reads the same answers. Box questions are not supported. Images in the state array are sent as Foundry `assets` and referenced from the state text as `image:<name>`.
+
+```csharp
+using Azure.Identity;
+
+using var foundry = new FoundryDecisionsClient(
+    new Uri("https://my-project.services.ai.azure.com/providers/microsoft"),
+    deploymentName: "pi-decision-1.1",
+    new AzureCliCredential());
+
+var response = await foundry.EvaluateAsync(DecisionsRequest.Create("The API returns 500 on every call.")
+    .Choice("team", "Which team should handle this ticket?", out var team,
+        ("billing", "Charges, invoices, and refunds"),
+        ("engineering", "Bugs, errors, and outages"))
+    .Build(foundry.DeploymentName));
+Console.WriteLine(response.Get(team).Choice);
+```
+
+A bare resource endpoint (`https://my-project.services.ai.azure.com`) also works; the client adds `/providers/microsoft`.
+
+`AzureOpenAIDecisionsClient` calls the [Azure OpenAI Decisions API](https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/decisions) at `{endpoint}/openai/v1/decisions` and translates requests and answers exactly as `OpenAIDecisionsClient` does. The endpoint can be the resource root (`https://my-resource.openai.azure.com/`) or the `.../openai/v1/` base URL the OpenAI SDKs use.
+
+```csharp
+using var azureOpenAI = new AzureOpenAIDecisionsClient(
+    new Uri("https://my-resource.openai.azure.com/"),
+    deploymentName: "gpt-6-luna",
+    Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY")!);
+```
+
+Both retry HTTP 429, 500, 502, 503, and 504 and report other failures as `DecisionsApiException` with `Service` set to `Foundry` or `Azure OpenAI`. Register them with `AddFoundryDecisionsClient` and `AddAzureOpenAIDecisionsClient`, or the `AddKeyed*` versions. The configuration overloads read `Endpoint`, `DeploymentName`, and `ApiKey` from the `Foundry` or `AzureOpenAI` section and fall back to the `TokenCredential` you pass when no key is configured:
+
+```csharp
+builder.Services.AddFoundryDecisionsClient(builder.Configuration, new DefaultAzureCredential());
+builder.Services.AddKeyedAzureOpenAIDecisionsClient("azure-openai", builder.Configuration, new DefaultAzureCredential());
+```
 
 ## Image inputs
 
@@ -438,6 +480,6 @@ Each keyed registration gets its own named `HttpClient` and returns its `IHttpCl
 From 1.0.0 the public types in this package follow semantic versioning: breaking changes only arrive in a major version. Two things sit outside that promise.
 
 - **Upstream APIs.** OpenRouter's Decisions route is still served under `/api/alpha/`, and TypeSafe labels image input on its direct API as experimental. When a provider changes its wire format, the SDK adapts in a minor or patch release and keeps its own types stable where it can.
-- **Experimental members.** Anything marked `[Experimental]` may change in a minor release: currently the OpenAI client under `DECISIONS001` and the conditional verbs under `DECISIONS002`.
+- **Experimental members.** Anything marked `[Experimental]` may change in a minor release: currently the OpenAI client under `DECISIONS001`, the conditional verbs under `DECISIONS002`, and the Foundry and Azure OpenAI clients under `DECISIONS003`.
 
 See the [changelog](https://github.com/HillPhelmuth/JevDotNet/blob/main/CHANGELOG.md) for the migration from 0.3.

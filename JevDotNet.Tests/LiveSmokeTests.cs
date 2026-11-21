@@ -46,6 +46,30 @@ public sealed class LiveSmokeTests
     }
 
     [Fact]
+    public async Task FoundryDecisionsAnswersAYesNoQuestionAsync()
+    {
+        RequireLive("FOUNDRY_API_KEY");
+        using var client = new FoundryDecisionsClient(new Uri(Required("FOUNDRY_ENDPOINT")), Required("FOUNDRY_DEPLOYMENT"),
+            Required("FOUNDRY_API_KEY"));
+
+        var response = await client.EvaluateAsync(Ticket().Build(client.DeploymentName), TestCancellation);
+
+        AssertUrgent(response);
+    }
+
+    [Fact]
+    public async Task AzureOpenAIDecisionsAnswersAYesNoQuestionAsync()
+    {
+        RequireLive("AZURE_OPENAI_API_KEY");
+        using var client = new AzureOpenAIDecisionsClient(new Uri(Required("AZURE_OPENAI_ENDPOINT")), Required("AZURE_OPENAI_DEPLOYMENT"),
+            Required("AZURE_OPENAI_API_KEY"));
+
+        var response = await client.EvaluateAsync(Ticket().Build(client.DeploymentName), TestCancellation);
+
+        AssertUrgent(response);
+    }
+
+    [Fact]
     public async Task OpenRouterExtractionsReadsATextFieldAsync()
     {
         RequireLive("OPENROUTER_API_KEY");
@@ -124,6 +148,13 @@ public sealed class LiveSmokeTests
     {
         Assert.False(string.IsNullOrWhiteSpace(response.Model));
         Assert.InRange(response.GetAnswer<NoulAnswer>("urgent").Noul, 0.5, 1.0);
+    }
+
+    private static string Required(string variable)
+    {
+        var value = Environment.GetEnvironmentVariable(variable);
+        Assert.SkipWhen(string.IsNullOrWhiteSpace(value), $"Set {variable} to run this test.");
+        return value!;
     }
 
     private static void RequireLive(string keyVariable)

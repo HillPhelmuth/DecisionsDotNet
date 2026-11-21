@@ -9,13 +9,15 @@
   <PropertyGroup>
     <PackageId>DecisionsDotNet</PackageId>
     <Version>$(DecisionsVersion)</Version>
-    <Title>DecisionsDotNet - TypeSafe AI SystemOne, OpenRouter, and OpenAI Decisions SDK</Title>
-    <Description>Type-safe .NET client for TypeSafe AI Jev models and the OpenRouter and OpenAI Decisions APIs, with typed decision questions and responses, dependency injection, cancellation, and bounded HTTP retries.</Description>
-    <PackageTags>Jev;TypeSafe;OpenRouter;OpenAI;AI;decisions;SDK;dotnet</PackageTags>
+    <Title>DecisionsDotNet - TypeSafe AI SystemOne, OpenRouter, OpenAI, Microsoft Foundry, and Azure OpenAI Decisions SDK</Title>
+    <Description>Type-safe .NET client for TypeSafe AI Jev models and the OpenRouter, OpenAI, Microsoft Foundry, and Azure OpenAI Decisions APIs, with typed decision questions and responses, dependency injection, cancellation, and bounded HTTP retries.</Description>
+    <PackageTags>Jev;TypeSafe;OpenRouter;OpenAI;Azure;AzureOpenAI;Foundry;AI;decisions;SDK;dotnet</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.0" />
+    <!-- TokenCredential, for Microsoft Entra authentication in the Foundry and Azure OpenAI clients. -->
+    <PackageReference Include="Azure.Core" Version="1.64.0" />
     <None Include="README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
 
