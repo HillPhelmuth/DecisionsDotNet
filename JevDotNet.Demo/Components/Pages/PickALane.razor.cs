@@ -24,6 +24,7 @@ public partial class PickALane
     private LaneSnapshot Snapshot = new(0, false, false, 2, 0, 0, []);
     private DecisionsRequest? Request;
     private DecisionsResponse? Response;
+    private DecisionChoice<Lane>? Choice;
     private CancellationTokenSource? Session;
     private readonly List<Task> Loops = [];
     private void RoadReady() => Ready = true;
@@ -73,15 +74,16 @@ public partial class PickALane
                 if (!Active(id)) break;
                 Snapshot = snapshot;
                 if (!snapshot.Running) { await FinishAsync(snapshot); break; }
-                Request = LaneDecision.BuildRequest(snapshot, Model);
+                var model = Evaluation.ForModel(Model, request => Request = request);
                 Thinking = true;
                 LastRequestStarted = Stopwatch.GetTimestamp();
                 Requests++;
+                var choosing = LaneDecision.ChooseAsync(model, snapshot, token);
                 StateHasChanged();
-                var response = await Evaluation.EvaluateAsync(Request, token);
+                var choice = await choosing;
                 if (!Active(id) || token.IsCancellationRequested) break;
-                var answer = response.GetAnswer<ChoiceAnswer>("lane");
-                var lane = LaneDecision.Validate(answer);
+                var response = choice.Response;
+                var lane = LaneDecision.Validate(choice);
                 if (!await Road.SteerAsync(id, lane))
                 {
                     if (Active(id))
@@ -93,6 +95,7 @@ public partial class PickALane
                 }
                 if (!Active(id)) break;
                 Response = response;
+                Choice = choice;
                 LatencyMs = Stopwatch.GetElapsedTime(turn).TotalMilliseconds;
                 Decisions++;
                 InputTokens += response.Usage.InputTokens;
@@ -116,7 +119,7 @@ public partial class PickALane
             }
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
-        catch (Exception error) when (error is DecisionsApiException or HttpRequestException or JsonException or InvalidOperationException or KeyNotFoundException or JSException)
+        catch (Exception error) when (error is DecisionsApiException or DecisionRefusedException or HttpRequestException or JsonException or InvalidOperationException or KeyNotFoundException or JSException)
         {
             if (Active(id))
             {
@@ -180,7 +183,7 @@ public partial class PickALane
         Snapshot = await Road.ResetAsync(id, Seconds);
         Started = Complete = false;
         Decisions = Requests = InputTokens = OutputTokens = 0;
-        LatencyMs = 0; Cost = null; Request = null; Response = null; Error = null;
+        LatencyMs = 0; Cost = null; Request = null; Response = null; Choice = null; Error = null;
         Status = "Ready. Start driving to let the model take the wheel.";
     }
 

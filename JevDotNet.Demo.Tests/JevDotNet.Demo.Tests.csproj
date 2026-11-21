@@ -7,10 +7,12 @@
     <IsTestProject>true</IsTestProject>
     <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
     <IsPackable>false</IsPackable>
+    <NoWarn>$(NoWarn);DECISIONS002</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <Using Include="Xunit" />
     <PackageReference Include="xunit.v3" Version="4.0.2" />
+    <PackageReference Include="DecisionsDotNet.Testing" Version="1.1.0-preview.2" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\JevDotNet.Demo\JevDotNet.Demo.csproj" />
