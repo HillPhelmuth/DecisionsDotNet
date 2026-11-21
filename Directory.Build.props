@@ -2,7 +2,7 @@
 
   <!-- Versions. DecisionsDotNet and its add-on packages (.AI, .Testing, .Caching) always ship together; ExtractionsDotNet versions on its own. -->
   <PropertyGroup>
-    <DecisionsVersion>1.1.0-preview.1</DecisionsVersion>
+    <DecisionsVersion>1.1.0-preview.2</DecisionsVersion>
     <ExtractionsVersion>1.0.0</ExtractionsVersion>
   </PropertyGroup>
 

@@ -2,7 +2,16 @@
 
 `DecisionsDotNet` and `DecisionsDotNet.AI` share a version. `ExtractionsDotNet` versions on its own. From 1.0.0 all three follow [semantic versioning](https://semver.org/).
 
-## 1.1.0-preview.1 (unreleased)
+## 1.1.0-preview.2 (unreleased)
+
+### DecisionsDotNet
+
+Added, experimental under `DECISIONS003`:
+
+- `FoundryDecisionsClient` for Microsoft decision models (such as Microsoft-Decision-1.1) deployed in Microsoft Foundry, at `{endpoint}/v1/systemone`, and `AzureOpenAIDecisionsClient` for the Azure OpenAI Decisions API at `{endpoint}/openai/v1/decisions`. Both take an endpoint, a deployment name, and either an API key (`api-key` header) or an Azure.Core `TokenCredential` (bearer token for `https://cognitiveservices.azure.com/.default`, cached until five minutes before it expires). `Add[Keyed]FoundryDecisionsClient` and `Add[Keyed]AzureOpenAIDecisionsClient` register them, including from the `Foundry` and `AzureOpenAI` configuration sections.
+- Now depends on `Azure.Core` for `TokenCredential`.
+
+## 1.1.0-preview.1 (2026-11-20)
 
 ### DecisionsDotNet
 
@@ -13,9 +22,6 @@ Added, all experimental under `DECISIONS002`:
 - Result types `DecisionVerdict`, `DecisionChoice<TEnum>`, `DecisionScore<TEnum>` and `DecisionScore`, each keeping the raw answer and full response, and `DecisionRefusedException`.
 - Typed decision sets: `DecideAsync<T>` and `DecideWithResponseAsync<T>` ask every `[Noul]`, `[Choice]` and `[Score]` property of a class in one request.
 - Batched collection verbs on `DecisionModel`: `WhereAsync`, `PartitionAsync`, `GroupByChoiceAsync<TEnum, T>` and `OrderByScoreAsync<TEnum, T>`, over `IEnumerable<T>` or `IAsyncEnumerable<T>`, built on `EvaluateBatchesAsync`, with `DecisionCollectionOptions<T>` for batch size and a prefilter.
-
-- `FoundryDecisionsClient` for Microsoft decision models (such as Microsoft-Decision-1.1) deployed in Microsoft Foundry, at `{endpoint}/v1/systemone`, and `AzureOpenAIDecisionsClient` for the Azure OpenAI Decisions API at `{endpoint}/openai/v1/decisions`. Both take an endpoint, a deployment name, and either an API key (`api-key` header) or an Azure.Core `TokenCredential` (bearer token for `https://cognitiveservices.azure.com/.default`, cached until five minutes before it expires). `Add[Keyed]FoundryDecisionsClient` and `Add[Keyed]AzureOpenAIDecisionsClient` register them, including from the `Foundry` and `AzureOpenAI` configuration sections. Experimental under `DECISIONS003`.
-- Now depends on `Azure.Core` for `TokenCredential`.
 
 - Client pipeline in `DecisionsDotNet.Pipeline`: `DelegatingDecisionsClient`, `DecisionsClientBuilder`, `AddDecisionsClient` and `AddKeyedDecisionsClient`, with `UseFallback`, `UseLogging` and `UseOpenTelemetry`.
 
