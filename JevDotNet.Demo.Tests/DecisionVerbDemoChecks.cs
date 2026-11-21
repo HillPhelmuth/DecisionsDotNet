@@ -97,17 +97,33 @@ public sealed class DecisionVerbDemoChecks
         Assert.Contains("Current lane: 2", Assert.Single(fake.Requests).State.ToJsonElement().GetString());
     }
 
-    [Fact]
-    public async Task JudgeRatesByTheMostLikelyLevelAsync()
+    [Theory]
+    // Levels 0 and 4 split 0.4 / 0.6: the weighted score is 2.4, nearest level 2 (rating 3), but the most likely level is 4 (rating 5).
+    [InlineData(new[] { 0.4, 0, 0, 0, 0.6 }, 5, 3.4)]
+    // A tie between levels 1 and 3 goes to the lower one.
+    [InlineData(new[] { 0, 0.5, 0, 0.5, 0 }, 2, 3.0)]
+    public async Task JudgeRatesByTheMostLikelyLevelAsync(double[] distribution, int rating, double weighted)
     {
-        var fake = new FakeDecisionsClient().AnswerScore(3.3);
+        var fake = new FakeDecisionsClient().Answer(_ => true, _ => new ScoreAnswer
+        {
+            Score = distribution.Select((p, level) => p * level).Sum(),
+            Confidence = distribution.Max(),
+            Legend = JudgeCatalog.Find("relevance").Levels.Select((text, level) => (level, text))
+                .ToDictionary(pair => pair.level.ToString(System.Globalization.CultureInfo.InvariantCulture), pair => pair.text),
+            Probabilities = distribution.Select((p, level) => (Level: level.ToString(System.Globalization.CultureInfo.InvariantCulture), p))
+                .ToDictionary(pair => pair.Level, pair => pair.p),
+        });
         var input = new JudgeInput("What is 2 + 2?", "4");
         var score = await JudgeCatalog.ScoreAsync(fake.ForModel(Model), "relevance", input, TestContext.Current.CancellationToken);
         var result = JudgeCatalog.ReadResult(score, TimeSpan.FromSeconds(1));
 
-        Assert.Equal(4, result.Rating);
-        Assert.Equal(4.3, result.WeightedScore, 6);
-        Assert.Equal(1, result.Probabilities.Sum(), 6);
-        Assert.Throws<ArgumentException>(() => JudgeCatalog.BuildState("completeness", input));
+        Assert.NotEqual(score.Level + 1, result.Rating);
+        Assert.Equal(rating, result.Rating);
+        Assert.Equal(weighted, result.WeightedScore, 6);
+        Assert.Equal(distribution, result.Probabilities);
     }
+
+    [Fact]
+    public void JudgeInputsAreCheckedBeforeSending()
+        => Assert.Throws<ArgumentException>(() => JudgeCatalog.BuildState("completeness", new JudgeInput("What is 2 + 2?", "4")));
 }
