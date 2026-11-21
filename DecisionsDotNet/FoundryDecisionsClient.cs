@@ -118,13 +118,20 @@ public sealed class FoundryDecisionsClient : IDecisionsClient, IDisposable
         body["questions"] = JsonSerializer.SerializeToNode(request.Questions, JsonOptions);
         var json = body.ToJsonString(JsonOptions);
 
-        var authenticate = await _authentication.GetApplierAsync(cancellationToken).ConfigureAwait(false);
-        var content = await DecisionsHttp.SendAsync(_httpClient, () =>
+        var content = await DecisionsHttp.SendAsync(_httpClient, async attemptCancellation =>
         {
             var message = new HttpRequestMessage(HttpMethod.Post, _systemOneUri);
-            authenticate(message);
             message.Content = new StringContent(json, Encoding.UTF8, "application/json");
-            return message;
+            try
+            {
+                await _authentication.ApplyAsync(message, attemptCancellation).ConfigureAwait(false);
+                return message;
+            }
+            catch
+            {
+                message.Dispose();
+                throw;
+            }
         }, _retry, Service, cancellationToken).ConfigureAwait(false);
         var response = DecisionsResponseValidator.DeserializeAndValidate(content, request.Questions);
         return response.Provider is null ? response with { Provider = Service } : response;

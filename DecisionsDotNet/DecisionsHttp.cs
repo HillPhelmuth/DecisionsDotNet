@@ -17,12 +17,17 @@ internal sealed record RetryPolicy(int MaxAttempts, TimeSpan InitialDelay, TimeS
 internal static class DecisionsHttp
 {
     /// <summary>Sends a request built fresh for each attempt and returns the successful response body.</summary>
-    internal static async Task<string> SendAsync(HttpClient client, Func<HttpRequestMessage> createMessage,
+    internal static Task<string> SendAsync(HttpClient client, Func<HttpRequestMessage> createMessage,
+        RetryPolicy policy, string service, CancellationToken cancellationToken)
+        => SendAsync(client, _ => ValueTask.FromResult(createMessage()), policy, service, cancellationToken);
+
+    /// <summary>Sends a request built fresh, asynchronously, for each attempt, such as one that needs a current access token.</summary>
+    internal static async Task<string> SendAsync(HttpClient client, Func<CancellationToken, ValueTask<HttpRequestMessage>> createMessage,
         RetryPolicy policy, string service, CancellationToken cancellationToken)
     {
         for (var attempt = 1; ; attempt++)
         {
-            using var message = createMessage();
+            using var message = await createMessage(cancellationToken).ConfigureAwait(false);
             using var response = await client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
                 .ConfigureAwait(false);
             var content = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);

@@ -18,7 +18,7 @@ internal sealed class AzureAuthentication
     private readonly TokenRequestContext _context;
     private readonly TimeProvider _clock;
     private readonly SemaphoreSlim _gate = new(1, 1);
-    private AccessToken? _token;
+    private CachedToken? _token;
 
     private AzureAuthentication(string? apiKey, TokenCredential? credential, string scope, TimeProvider clock)
     {
@@ -40,26 +40,28 @@ internal sealed class AzureAuthentication
         return new(null, credential, scope, clock);
     }
 
-    /// <summary>Returns a function that applies the credential to a request message.</summary>
-    internal async ValueTask<Action<HttpRequestMessage>> GetApplierAsync(CancellationToken cancellationToken)
+    /// <summary>Signs a request message. Call it once per attempt, so a retry never carries a token that has since expired.</summary>
+    internal async ValueTask ApplyAsync(HttpRequestMessage message, CancellationToken cancellationToken)
     {
         if (_apiKey is { } apiKey)
-            return message => message.Headers.Add("api-key", apiKey);
-        var token = await GetTokenAsync(cancellationToken).ConfigureAwait(false);
-        return message => message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            message.Headers.Add("api-key", apiKey);
+        else
+            message.Headers.Authorization = new AuthenticationHeaderValue("Bearer",
+                await GetTokenAsync(cancellationToken).ConfigureAwait(false));
     }
 
     private async ValueTask<string> GetTokenAsync(CancellationToken cancellationToken)
     {
-        if (_token is { } cached && cached.ExpiresOn - RefreshMargin > _clock.GetUtcNow())
-            return cached.Token;
+        // AccessToken is a multi-field struct, so it is published inside an immutable box: a reader sees a whole token or none.
+        if (Volatile.Read(ref _token) is { } cached && IsFresh(cached.Value))
+            return cached.Value.Token;
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            if (_token is { } current && current.ExpiresOn - RefreshMargin > _clock.GetUtcNow())
-                return current.Token;
+            if (_token is { } current && IsFresh(current.Value))
+                return current.Value.Token;
             var token = await _credential!.GetTokenAsync(_context, cancellationToken).ConfigureAwait(false);
-            _token = token;
+            Volatile.Write(ref _token, new CachedToken(token));
             return token.Token;
         }
         finally
@@ -67,6 +69,10 @@ internal sealed class AzureAuthentication
             _gate.Release();
         }
     }
+
+    private bool IsFresh(AccessToken token) => token.ExpiresOn - RefreshMargin > _clock.GetUtcNow();
+
+    private sealed record CachedToken(AccessToken Value);
 }
 
 /// <summary>Endpoint checks shared by the Azure clients.</summary>

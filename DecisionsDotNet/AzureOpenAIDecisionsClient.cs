@@ -102,13 +102,20 @@ public sealed class AzureOpenAIDecisionsClient : IDecisionsClient, IDisposable
         var (state, hasImages) = ImageInput.ValidateRequest(request);
         var body = OpenAIDecisionsWire.BuildBody(DeploymentName, request.Questions, state, hasImages, Service);
 
-        var authenticate = await _authentication.GetApplierAsync(cancellationToken).ConfigureAwait(false);
-        var content = await DecisionsHttp.SendAsync(_httpClient, () =>
+        var content = await DecisionsHttp.SendAsync(_httpClient, async attemptCancellation =>
         {
             var message = new HttpRequestMessage(HttpMethod.Post, _decisionsUri);
-            authenticate(message);
             message.Content = new StringContent(body, Encoding.UTF8, "application/json");
-            return message;
+            try
+            {
+                await _authentication.ApplyAsync(message, attemptCancellation).ConfigureAwait(false);
+                return message;
+            }
+            catch
+            {
+                message.Dispose();
+                throw;
+            }
         }, _retry, Service, cancellationToken).ConfigureAwait(false);
         return OpenAIDecisionsWire.ReadResponse(content, request.Questions, Service);
     }

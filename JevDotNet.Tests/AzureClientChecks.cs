@@ -133,6 +133,24 @@ public sealed class AzureClientChecks
     }
 
     [Fact]
+    public async Task EachRetryAttemptIsSignedWithACurrentTokenAsync()
+    {
+        var credential = new CountingCredential(TimeSpan.FromMinutes(2));
+        var headers = new List<string?>();
+        using var client = new FoundryDecisionsClient(FoundryEndpoint, "d", credential, new HttpClient(new StubHandler(message =>
+        {
+            headers.Add(message.Headers.Authorization?.ToString());
+            return headers.Count == 1
+                ? new HttpResponseMessage(HttpStatusCode.TooManyRequests) { Content = new StringContent("slow down") }
+                : Ok(SystemOneAnswer);
+        })), new FoundryDecisionsClientOptions { InitialRetryDelay = TimeSpan.Zero, MaxRetryDelay = TimeSpan.Zero });
+
+        await client.EvaluateAsync(TwoQuestions(), TestCancellation);
+
+        Assert.Equal(["Bearer token-1", "Bearer token-2"], headers);
+    }
+
+    [Fact]
     public async Task AzureOpenAISendsTheOpenAIShapeToTheDeploymentWithAnApiKeyAsync()
     {
         JsonElement sent = default;
