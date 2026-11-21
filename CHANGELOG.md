@@ -14,6 +14,9 @@ Added, all experimental under `DECISIONS002`:
 - Typed decision sets: `DecideAsync<T>` and `DecideWithResponseAsync<T>` ask every `[Noul]`, `[Choice]` and `[Score]` property of a class in one request.
 - Batched collection verbs on `DecisionModel`: `WhereAsync`, `PartitionAsync`, `GroupByChoiceAsync<TEnum, T>` and `OrderByScoreAsync<TEnum, T>`, over `IEnumerable<T>` or `IAsyncEnumerable<T>`, built on `EvaluateBatchesAsync`, with `DecisionCollectionOptions<T>` for batch size and a prefilter.
 
+- `FoundryDecisionsClient` for Microsoft decision models (such as Microsoft-Decision-1.1) deployed in Microsoft Foundry, at `{endpoint}/v1/systemone`, and `AzureOpenAIDecisionsClient` for the Azure OpenAI Decisions API at `{endpoint}/openai/v1/decisions`. Both take an endpoint, a deployment name, and either an API key (`api-key` header) or an Azure.Core `TokenCredential` (bearer token for `https://cognitiveservices.azure.com/.default`, cached until five minutes before it expires). `Add[Keyed]FoundryDecisionsClient` and `Add[Keyed]AzureOpenAIDecisionsClient` register them, including from the `Foundry` and `AzureOpenAI` configuration sections. Experimental under `DECISIONS003`.
+- Now depends on `Azure.Core` for `TokenCredential`.
+
 - Client pipeline in `DecisionsDotNet.Pipeline`: `DelegatingDecisionsClient`, `DecisionsClientBuilder`, `AddDecisionsClient` and `AddKeyedDecisionsClient`, with `UseFallback`, `UseLogging` and `UseOpenTelemetry`.
 
 ### DecisionsDotNet.AI
@@ -101,6 +104,7 @@ Members marked `[Experimental]` produce a compiler error until you suppress thei
 | Diagnostic | Members | Why |
 | --- | --- | --- |
 | `DECISIONS001` | `OpenAIDecisionsClient`, `OpenAIDecisionsClientOptions`, `AddOpenAIDecisionsClient`, `AddKeyedOpenAIDecisionsClient` | Verified against recorded response shapes, not yet against the live OpenAI Decisions API. |
+| `DECISIONS003` | `FoundryDecisionsClient`, `AzureOpenAIDecisionsClient`, their options, and their `Add*` registrations (added after 1.0.0) | Verified against the documented request shapes, not yet against the live Foundry and Azure OpenAI APIs. |
 | `DECISIONS002` | `DecisionModel`, its verbs, result types, decision sets and collection verbs, the `DecisionsDotNet.Pipeline` namespace, the guardrail and workflow helpers in `DecisionsDotNet.AI`, and everything in `DecisionsDotNet.Testing` and `DecisionsDotNet.Caching` (added after 1.0.0) | New in 1.1; the shape may change after real use. |
 
 To use them, add `<NoWarn>$(NoWarn);DECISIONS001</NoWarn>` to your project file, or wrap the code in `#pragma warning disable DECISIONS001`.

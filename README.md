@@ -1,10 +1,10 @@
 # DecisionsDotNet and ExtractionsDotNet
 
-.NET 10 SDKs for calibrated decision and extraction models: TypeSafe AI's Jev models, and the Decisions and Extractions APIs from OpenRouter and OpenAI.
+.NET 10 SDKs for calibrated decision and extraction models: TypeSafe AI's Jev models, the Decisions and Extractions APIs from OpenRouter and OpenAI, and Microsoft's decision models in Microsoft Foundry and Azure OpenAI.
 
 | Package | What it does | Docs |
 | --- | --- | --- |
-| [DecisionsDotNet](https://www.nuget.org/packages/DecisionsDotNet) | Typed yes/no, choice, score, and bounding-box questions through TypeSafe, OpenRouter, or OpenAI, with DI, batching, and bounded retries. | [README](DecisionsDotNet/README.md) |
+| [DecisionsDotNet](https://www.nuget.org/packages/DecisionsDotNet) | Typed yes/no, choice, score, and bounding-box questions through TypeSafe, OpenRouter, OpenAI, Microsoft Foundry, or Azure OpenAI, with DI, batching, and bounded retries. | [README](DecisionsDotNet/README.md) |
 | [DecisionsDotNet.Testing](https://www.nuget.org/packages/DecisionsDotNet.Testing) | A scripted fake and a recording wrapper for `IDecisionsClient`, for unit tests. | [README](DecisionsDotNet.Testing/README.md) |
 | [DecisionsDotNet.Caching](https://www.nuget.org/packages/DecisionsDotNet.Caching) | Caches evaluations in `HybridCache` as a client pipeline decorator. | [README](DecisionsDotNet.Caching/README.md) |
 | [DecisionsDotNet.AI](https://www.nuget.org/packages/DecisionsDotNet.AI) | Exposes any Decisions client as a Microsoft.Extensions.AI tool for chat clients and agents, plus chat guardrails and workflow routing. | [README](DecisionsDotNet.AI/README.md) |
