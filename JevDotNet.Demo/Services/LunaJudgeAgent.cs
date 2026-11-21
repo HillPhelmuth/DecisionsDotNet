@@ -58,7 +58,7 @@ public sealed class LunaJudgeAgent : ILunaJudgeClient
     public static LunaJudgeRequest BuildRequest(string type, JudgeInput input)
     {
         var evaluator = JudgeCatalog.Find(type);
-        var state = JudgeCatalog.BuildRequest(type, input).State.ToJsonElement();
+        var state = JudgeCatalog.BuildState(type, input).ToJsonElement();
         var prompt = JsonSerializer.Serialize(new
         {
             evaluator = evaluator.Name,

@@ -24,7 +24,7 @@ namespace JevDotNet.Demo.Components.Pages
         private static readonly JsonSerializerOptions PrettyJson = new(JsonSerializerDefaults.Web) { WriteIndented = true };
 
         private IReadOnlyDictionary<string, DecisionsQuestion> Questions
-            => Scenario is null ? new Dictionary<string, DecisionsQuestion>() : DemoScenarioCatalog.BuildRequest(Scenario.Slug, "Preview").Questions;
+            => Scenario is null ? new Dictionary<string, DecisionsQuestion>() : DemoScenarioCatalog.Questions(Scenario.Slug);
         private string? RequestJson => Request is null ? null : JsonSerializer.Serialize(Request, PrettyJson);
         private string? ResponseJson => Response is null ? null : JsonSerializer.Serialize(Response, PrettyJson);
 
@@ -53,7 +53,12 @@ namespace JevDotNet.Demo.Components.Pages
             Request = null;
             Response = null;
             Recommendation = null;
-            try { Request = DemoScenarioCatalog.BuildRequest(Scenario.Slug, Input, SelectedModel); }
+            DecisionModel model;
+            try
+            {
+                DemoScenarioCatalog.BuildInput(Scenario.Slug, Input);
+                model = Evaluation.ForModel(SelectedModel, request => Request = request);
+            }
             catch (ArgumentException error) { ValidationError = error.Message; return; }
 
             IsBusy = true;
@@ -63,11 +68,11 @@ namespace JevDotNet.Demo.Components.Pages
             var slug = Scenario.Slug;
             try
             {
-                var response = await Evaluation.EvaluateAsync(Request, token);
+                var (response, recommendation) = await DemoScenarioCatalog.EvaluateAsync(slug, Input, model, token);
                 if (!token.IsCancellationRequested && ActiveSlug == slug)
                 {
                     Response = response;
-                    Recommendation = DemoScenarioCatalog.Recommend(slug, response);
+                    Recommendation = recommendation;
                 }
             }
             catch (OperationCanceledException) when (token.IsCancellationRequested) { }
@@ -87,6 +92,10 @@ namespace JevDotNet.Demo.Components.Pages
                     HttpStatusCode.BadGateway or HttpStatusCode.ServiceUnavailable or (HttpStatusCode)529 => "OpenRouter or its provider is temporarily unavailable. Try again shortly.",
                     _ => $"OpenRouter returned HTTP {(int)error.StatusCode}: {error.ResponseBody}"
                 };
+            }
+            catch (DecisionRefusedException error)
+            {
+                if (ActiveSlug == slug) ErrorMessage = $"The model declined to answer '{error.QuestionId}'. Try rephrasing the input.";
             }
             catch (Exception error) when (error is HttpRequestException or JsonException or InvalidOperationException)
             {

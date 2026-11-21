@@ -9,11 +9,10 @@
         @if (Response is null) { <p>Start driving to see the model's lane probabilities.</p> }
         @for (var lane = 1; lane <= 3; lane++)
         {
-            var key = $"lane_{lane}";
-            var answer = Response?.GetAnswer<ChoiceAnswer>("lane");
-            var p = answer?.Probabilities.GetValueOrDefault(key) ?? 0;
-            <div class="lane-probability @(answer?.Choice == key ? "chosen" : "")">
-                <span>Lane @lane</span><progress max="1" value="@Number(p)" aria-label="Lane @lane probability"></progress><strong>@(answer is null ? "—" : p.ToString("0.00", CultureInfo.InvariantCulture))</strong>
+            var key = (Lane)lane;
+            var p = Choice?.Probabilities.GetValueOrDefault(key) ?? 0;
+            <div class="lane-probability @(Choice?.Value == key ? "chosen" : "")">
+                <span>Lane @lane</span><progress max="1" value="@Number(p)" aria-label="Lane @lane probability"></progress><strong>@(Choice is null ? "—" : p.ToString("0.00", CultureInfo.InvariantCulture))</strong>
             </div>
         }
     </section>
@@ -44,6 +43,7 @@
     [Parameter] public bool Compact { get; set; }
     [Parameter] public bool Running { get; set; }
     [Parameter] public DecisionsResponse? Response { get; set; }
+    [Parameter] public DecisionChoice<Lane>? Choice { get; set; }
     [Parameter] public DecisionsRequest? Request { get; set; }
     [Parameter] public int Decisions { get; set; }
     [Parameter] public int Requests { get; set; }

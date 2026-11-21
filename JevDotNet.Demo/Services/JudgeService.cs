@@ -43,15 +43,16 @@ public sealed class JudgeService(DemoEvaluationService evaluation, IWebHostEnvir
     public async Task<JudgeResult> EvaluateAsync(string type, JudgeInput input,
         string model = DemoDecisionModels.DefaultModelId, CancellationToken cancellationToken = default)
     {
-        var request = JudgeCatalog.BuildRequest(type, input, model);
+        JudgeCatalog.BuildState(type, input);
+        var decisions = evaluation.ForModel(model, request =>
+            Console.WriteLine($"Jev Request: {JsonSerializer.Serialize(request, new JsonSerializerOptions { WriteIndented = true })}"));
         cancellationToken.ThrowIfCancellationRequested();
         var stopwatch = Stopwatch.StartNew();
-        Console.WriteLine($"Jev Request: {JsonSerializer.Serialize(request, new JsonSerializerOptions { WriteIndented = true })}");
-        var response = await evaluation.EvaluateAsync(request, cancellationToken);
+        var score = await JudgeCatalog.ScoreAsync(decisions, type, input, cancellationToken);
         stopwatch.Stop();
-        Console.WriteLine($"Jev Response: {JsonSerializer.Serialize(response, new JsonSerializerOptions { WriteIndented = true })}");
+        Console.WriteLine($"Jev Response: {JsonSerializer.Serialize(score.Response, new JsonSerializerOptions { WriteIndented = true })}");
         cancellationToken.ThrowIfCancellationRequested();
-        return JudgeCatalog.ReadResult(response, stopwatch.Elapsed);
+        return JudgeCatalog.ReadResult(score, stopwatch.Elapsed);
     }
 
     public async Task RunAsync(JudgeRun run, Func<Task>? onProgress = null, CancellationToken cancellationToken = default)
@@ -70,7 +71,7 @@ public sealed class JudgeService(DemoEvaluationService evaluation, IWebHostEnvir
                     attempt = new(example, result);
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
-                catch (Exception error) when (error is DecisionsApiException or HttpRequestException or JsonException or
+                catch (Exception error) when (error is DecisionsApiException or DecisionRefusedException or HttpRequestException or JsonException or
                     InvalidOperationException or ArgumentException or OperationCanceledException)
                 {
                     attempt = new(example, null, error is OperationCanceledException ? "The request timed out. Try again." : error.Message);
