@@ -17,7 +17,7 @@
   <ItemGroup>
     <!-- The demo runs on the packages as published on nuget.org, not the project sources, so every deploy exercises what customers install. -->
     <PackageReference Include="ExtractionsDotNet" Version="1.0.0-rc.1" />
-    <PackageReference Include="DecisionsDotNet" Version="1.1.0-preview.2" />
+    <PackageReference Include="DecisionsDotNet" Version="1.1.0" />
     <PackageReference Include="Microsoft.Agents.AI" Version="1.22.0" />
     <PackageReference Include="Microsoft.Agents.AI.OpenAI" Version="1.22.0" />
     <Content Update="Data\table-data.json" CopyToOutputDirectory="PreserveNewest" />
