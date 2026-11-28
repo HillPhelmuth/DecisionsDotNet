@@ -22,7 +22,7 @@ dotnet add package ExtractionsDotNet
 
 ## Demo
 
-[JevDotNet.Demo](JevDotNet.Demo/README.md) is a Blazor Server app with support triage, image decisions, bulk triage, Jev as Judge, a chase game, and the Extractions Lab. It needs an OpenRouter API key:
+[JevDotNet.Demo](JevDotNet.Demo/README.md) is a Blazor Server app with support triage, image decisions, bulk triage, Jev as Judge, chase and maze games, and the Extractions Lab. It needs an OpenRouter API key:
 
 ```powershell
 dotnet user-secrets set "OpenRouter:ApiKey" "<your-api-key>" --project JevDotNet.Demo

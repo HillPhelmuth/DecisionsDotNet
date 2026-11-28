@@ -1,0 +1,106 @@
+.garden-layout { display: grid; grid-template-columns: minmax(0, 560px) minmax(0, 1fr); gap: 12px; align-items: start; margin-top: 13px; }
+@media (max-width: 1000px) { .garden-layout { grid-template-columns: 1fr; } }
+
+.garden-settings { display: flex; flex-wrap: wrap; align-items: end; gap: 10px 16px; margin-bottom: 10px; }
+.garden-settings > label:first-child { display: grid; gap: 5px; flex: 1 1 220px; font-size: 11px; font-weight: 700; color: #375643; }
+.garden-settings .model-select { margin: 0; }
+.garden-toggle { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; color: #375643; padding-bottom: 8px; }
+.garden-toggle input { accent-color: #277758; }
+
+.garden-scoreline { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; color: #52725e; margin-bottom: 8px; }
+.garden-scoreline strong { color: #183128; font-size: 15px; margin-left: 4px; }
+.garden-lives { display: inline-flex; gap: 4px; vertical-align: middle; }
+.garden-lives i { width: 10px; height: 10px; border-radius: 50%; background: #d8f25a; box-shadow: 0 0 6px #c8ec3a; }
+
+.garden-board {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+    grid-template-rows: repeat(var(--rows), minmax(0, 1fr));
+    width: min(100%, 520px, calc((100svh - 300px) * 19 / 20));
+    min-width: 280px;
+    aspect-ratio: 19 / 20;
+    margin: 0 auto;
+    padding: 0;
+    background: radial-gradient(circle at 50% 40%, #16362a 0%, #0c1f18 70%);
+    border-radius: 10px;
+    overflow: hidden;
+    outline: none;
+    transition: box-shadow .3s;
+}
+.garden-board:focus-visible { box-shadow: 0 0 0 3px #75cf9b; }
+.garden-board.blazing { box-shadow: inset 0 0 40px #d8f25a33; }
+
+.hedge {
+    background: #2f6a46;
+    border-radius: 3px;
+    box-shadow: inset 0 0 0 1px #3d8357, inset 0 -3px 0 #22523a;
+    margin: 1px;
+}
+.pollen { display: grid; place-items: center; }
+.pollen::after { content: ""; width: 18%; height: 18%; border-radius: 50%; background: #f3d36b; opacity: .85; }
+.bloom { display: grid; place-items: center; }
+.bloom span {
+    width: 62%; height: 62%; border-radius: 50%;
+    background: radial-gradient(circle, #fff6c9 0 22%, #f6f0ff 23% 45%, transparent 46%),
+                conic-gradient(from 0deg, #f7e9ff 0 12%, transparent 12% 25%, #f7e9ff 25% 37%, transparent 37% 50%, #f7e9ff 50% 62%, transparent 62% 75%, #f7e9ff 75% 87%, transparent 87%);
+    animation: bloom-pulse 1.2s ease-in-out infinite;
+}
+@keyframes bloom-pulse { 50% { transform: scale(.78) rotate(20deg); opacity: .75; } }
+
+.sprite {
+    position: absolute;
+    width: calc(100% / var(--cols));
+    height: calc(100% / var(--rows));
+    display: grid;
+    place-items: center;
+    transition: left .19s linear, top .19s linear;
+    pointer-events: none;
+    z-index: 2;
+}
+.sprite svg { width: 118%; height: 118%; overflow: visible; }
+
+.firefly { z-index: 3; }
+.firefly .glow { fill: #e8ff6a; opacity: .22; animation: glow 1.1s ease-in-out infinite; }
+.firefly .fly-wing { fill: #e6f4ff; opacity: .7; }
+.firefly .fly-body { fill: #3b3b2a; }
+.firefly .fly-tail { fill: #e5fb4f; filter: drop-shadow(0 0 4px #d8f25a); }
+.firefly.heading-left svg { transform: rotate(-90deg); }
+.firefly.heading-right svg { transform: rotate(90deg); }
+.firefly.heading-down svg { transform: rotate(180deg); }
+.firefly.heading-up svg { transform: rotate(0deg); }
+.blazing .firefly .glow { opacity: .55; r: 22; }
+@keyframes glow { 50% { opacity: .4; } }
+
+.moth .wing { fill: var(--moth); opacity: .92; }
+.moth .wing.low { opacity: .7; }
+.moth .body { fill: #2c2433; }
+.moth .antenna { fill: none; stroke: #2c2433; stroke-width: 1.6; stroke-linecap: round; }
+.moth svg { animation: flutter .32s ease-in-out infinite alternate; }
+.moth.deciding svg { filter: drop-shadow(0 0 3px #ffffffaa); }
+.moth.dazzled .wing { fill: #dfe9ff; animation: dazzle .3s steps(2) infinite; }
+@keyframes flutter { to { transform: scaleX(.86); } }
+@keyframes dazzle { 50% { fill: #8fa6c8; } }
+
+.garden-overlay {
+    position: absolute; inset: 0; z-index: 4;
+    display: grid; place-content: center; gap: 6px; text-align: center;
+    background: #0c1f18b8; color: #effff2;
+}
+.garden-overlay strong { font-family: Manrope, sans-serif; font-size: 26px; letter-spacing: -.5px; }
+.garden-overlay span { font-size: 12px; color: #bfe3cc; }
+
+.moth-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; }
+.moth-card { border: 1px solid #dce8df; border-left: 4px solid var(--moth); border-radius: 8px; padding: 9px 10px; min-width: 0; }
+.moth-card header { display: flex; align-items: center; gap: 7px; }
+.moth-card header strong { font-size: 14px; }
+.moth-card header small { font-size: 8px; letter-spacing: .6px; color: #6c8173; }
+.moth-swatch { width: 10px; height: 10px; border-radius: 50%; background: var(--moth); }
+.moth-thinking { margin-left: auto; font-size: 10px; color: #37835a; font-style: normal; }
+.moth-turns { display: flex; gap: 12px; font-size: 11px; color: #52725e; margin: 6px 0 4px; }
+.moth-turns strong { color: #183128; }
+.moth-last { font-size: 11px; margin: 4px 0; line-height: 1.4; color: #375643; }
+.moth-last span { color: #6c8173; }
+.moth-probabilities { display: grid; gap: 3px; }
+.moth-probabilities span { position: relative; display: block; font-size: 10px; padding: 2px 6px; border-radius: 4px; background: #eff5f0; overflow: hidden; z-index: 0; }
+.moth-probabilities i { position: absolute; inset: 0 auto 0 0; background: var(--moth); opacity: .35; z-index: -1; }
