@@ -1,6 +1,6 @@
 # ExtractionsDotNet
 
-Pull typed fields out of text, images, and PDFs with an LLM, with a confidence on every value:
+Pull typed fields out of text, images, and PDFs with an LLM, with a confidence score wherever the model returns one:
 
 ```csharp
 using ExtractionsDotNet;
