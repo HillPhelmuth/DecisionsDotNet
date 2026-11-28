@@ -1,0 +1,191 @@
+@page "/moth-garden"
+@using System.Globalization
+@using System.Text.Json
+@using JevDotNet.Demo.Services
+@using JevDotNet.Demo.Services.MothGarden
+@implements IDisposable
+
+<PageTitle>Moth Garden · JevDotNet Demo</PageTitle>
+
+<div class="page-heading chase-page-heading">
+    <div>
+        <a class="back-link" href="/">← All demos</a>
+        <div class="eyebrow">OUTFLY FOUR DECISION MODELS</div>
+        <h1>Moth Garden<span class="title-period">.</span></h1>
+        <p>You are the firefly. Gather every grain of pollen in the hedge maze while four moths hunt you. A decision model picks each moth's turn before it reaches the next junction.</p>
+    </div>
+    <div class="chase-toolbar">
+        @if (Running)
+        {
+            <button class="button button-primary" @onclick="PauseAsync">Pause</button>
+        }
+        else
+        {
+            <button class="button button-primary" @onclick="StartAsync" disabled="@Game.IsOver">@(Game.Status == GardenStatus.Ready ? "Start" : "Resume") <span aria-hidden="true">↗</span></button>
+        }
+        <button class="button chase-reset" @onclick="Reset">Reset</button>
+    </div>
+</div>
+
+@if (!Evaluation.HasApiKey)
+{
+    <ApiKeyNotice />
+}
+
+@if (Director.LastError is not null)
+{
+    <div class="error-notice" role="alert"><strong>@(Director.Halted ? "Model steering stopped." : "A decision failed.")</strong> @Director.LastError</div>
+}
+
+<div class="garden-layout">
+    <section class="chase-board-panel garden-board-panel" aria-label="Moth Garden board">
+        <div class="chase-panel-heading"><h2>Garden</h2><span>@BoardState</span></div>
+        <div class="garden-settings">
+            <label>
+                Moth model
+                <select class="model-select" @bind="Model" disabled="@(Game.Status != GardenStatus.Ready)">
+                    @foreach (var model in DemoDecisionModels.All)
+                    {
+                        <option value="@model.Id">@model.Name</option>
+                    }
+                </select>
+            </label>
+            <label class="garden-toggle">
+                <input type="checkbox" @bind="UseModel" disabled="@(!Evaluation.HasApiKey || Game.Status != GardenStatus.Ready)" />
+                Let the model steer the moths
+            </label>
+        </div>
+        <div class="garden-scoreline" aria-live="polite">
+            <span>Score <strong>@Game.Score</strong></span>
+            <span>Lives <strong class="garden-lives" aria-label="@Game.Lives lives">@for (var i = 0; i < Game.Lives; i++) { <i></i> }</strong></span>
+            <span>Pollen <strong>@Game.PollenLeft / @Game.TotalPollen</strong></span>
+        </div>
+        <div class="garden-board @(Game.BloomRemaining > 0 ? "blazing" : "")" tabindex="0" role="application"
+             aria-label="Moth Garden maze. Arrow keys or W A S D steer the firefly. Space starts or pauses."
+             style="--cols: @MothGardenMaze.Columns; --rows: @MothGardenMaze.Rows"
+             @ref="Board" @onkeydown="HandleKeyDownAsync">
+            @for (var row = 0; row < MothGardenMaze.Rows; row++)
+            {
+                @for (var column = 0; column < MothGardenMaze.Columns; column++)
+                {
+                    var cell = new MazeCell(column, row);
+                    @if (!MothGardenMaze.IsOpen(cell))
+                    {
+                        <div class="hedge" style="@CellStyle(cell)"></div>
+                    }
+                    else if (Game.HasPollen(cell))
+                    {
+                        <div class="pollen" style="@CellStyle(cell)"></div>
+                    }
+                    else if (Game.HasBloom(cell))
+                    {
+                        <div class="bloom" style="@CellStyle(cell)"><span></span></div>
+                    }
+                }
+            }
+            @foreach (var moth in Game.Moths)
+            {
+                <div class="sprite moth @(moth.IsDazzled ? "dazzled" : "") @(Director.IsDeciding(moth) ? "deciding" : "")"
+                     @key="(moth.Name, moth.Generation)" style="@SpriteStyle(moth.Position); --moth: @moth.Color" title="@moth.Name">
+                    <svg viewBox="0 0 40 40" aria-hidden="true">
+                        <path class="antenna" d="M18 12 Q14 4 10 5 M22 12 Q26 4 30 5" />
+                        <ellipse class="wing" cx="11" cy="18" rx="10" ry="8" transform="rotate(-20 11 18)" />
+                        <ellipse class="wing" cx="29" cy="18" rx="10" ry="8" transform="rotate(20 29 18)" />
+                        <ellipse class="wing low" cx="13" cy="28" rx="7" ry="6" />
+                        <ellipse class="wing low" cx="27" cy="28" rx="7" ry="6" />
+                        <ellipse class="body" cx="20" cy="22" rx="4" ry="11" />
+                    </svg>
+                </div>
+            }
+            <div class="sprite firefly heading-@Game.FireflyHeading.Word()" @key="Game.FireflyGeneration" style="@SpriteStyle(Game.Firefly)" title="Firefly (you)">
+                <svg viewBox="0 0 40 40" aria-hidden="true">
+                    <circle class="glow" cx="20" cy="20" r="17" />
+                    <ellipse class="fly-wing" cx="13" cy="15" rx="7" ry="4" />
+                    <ellipse class="fly-wing" cx="27" cy="15" rx="7" ry="4" />
+                    <ellipse class="fly-body" cx="20" cy="17" rx="4" ry="6" />
+                    <circle class="fly-tail" cx="20" cy="27" r="6" />
+                </svg>
+            </div>
+            @if (Game.Status is GardenStatus.Ready or GardenStatus.Won or GardenStatus.Lost || (!Running && Game.Status != GardenStatus.Ready))
+            {
+                <div class="garden-overlay"><strong>@OverlayTitle</strong><span>@OverlayHint</span></div>
+            }
+        </div>
+        <div class="chase-controls" aria-label="Steer the firefly">
+            <button @onclick="() => SteerAsync(Heading.Up)" disabled="@Game.IsOver" aria-label="Steer up">↑</button>
+            <button @onclick="() => SteerAsync(Heading.Left)" disabled="@Game.IsOver" aria-label="Steer left">←</button>
+            <button @onclick="() => SteerAsync(Heading.Down)" disabled="@Game.IsOver" aria-label="Steer down">↓</button>
+            <button @onclick="() => SteerAsync(Heading.Right)" disabled="@Game.IsOver" aria-label="Steer right">→</button>
+        </div>
+        <p class="chase-status" role="status">@StatusMessage</p>
+        <p class="chase-help">Arrow keys or WASD steer · Space pauses · A night bloom makes you blaze, so dazzled moths flee and you can catch them</p>
+    </section>
+
+    <aside class="chase-info-card chase-dashboard">
+        <section>
+            <div class="chase-panel-heading"><h2>The moths</h2><span>@(ModelSteering ? "MODEL-STEERED" : "REFLEX ONLY")</span></div>
+            <div class="moth-cards">
+                @foreach (var moth in Game.Moths)
+                {
+                    var last = Director.LastDecision(moth);
+                    <article class="moth-card" style="--moth: @moth.Color">
+                        <header>
+                            <span class="moth-swatch" aria-hidden="true"></span>
+                            <strong>@moth.Name</strong>
+                            <small>@moth.Temper.ToString().ToUpperInvariant()</small>
+                            @if (Director.IsDeciding(moth))
+                            {
+                                <em class="moth-thinking">deciding…</em>
+                            }
+                        </header>
+                        <div class="moth-turns">
+                            <span>Model turns <strong>@moth.ModelTurns</strong></span>
+                            <span>Reflex turns <strong>@moth.ReflexTurns</strong></span>
+                        </div>
+                        @if (last is not null)
+                        {
+                            <p class="moth-last">
+                                At @last.Point.Junction.Text: <strong>@last.Choice.Value.Word()</strong>
+                                <span>· @Percent(last.Choice.SelectedProbability)% · @Math.Round(last.Latency.TotalMilliseconds) ms · @(last.InTime ? "in time" : "too late")</span>
+                            </p>
+                            <div class="moth-probabilities">
+                                @foreach (var option in last.Choice.Probabilities.OrderByDescending(item => item.Value))
+                                {
+                                    <span title="@option.Key: @Percent(option.Value)%"><i style="width: @Percent(option.Value)%"></i>@option.Key.Word()</span>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="moth-last">@(ModelSteering ? "Waiting for its first decision." : "Turning on reflex toward its goal.")</p>
+                        }
+                    </article>
+                }
+            </div>
+        </section>
+
+        <section class="chase-usage">
+            <h2>Live usage</h2>
+            <div class="chase-stat-grid">
+                <div class="chase-stat"><span>Requests</span><strong>@Director.Requests / @Director.MaxRequests</strong></div>
+                <div class="chase-stat"><span>Answered in time</span><strong>@Director.InTime / @Director.Answered</strong></div>
+                <div class="chase-stat"><span>Average latency</span><strong>@(Director.Answered == 0 ? "—" : Math.Round(Director.AverageLatencyMs) + " ms")</strong></div>
+                <div class="chase-stat"><span>Failures</span><strong>@Director.Failures</strong></div>
+                <div class="chase-stat"><span>Total cost</span><strong>@(Director.Cost is { } cost ? "$" + cost.ToString("0.#########", CultureInfo.InvariantCulture) : "—")</strong></div>
+            </div>
+            <div class="chase-meta"><span>Input / output tokens <strong>@Director.InputTokens / @Director.OutputTokens</strong></span></div>
+        </section>
+
+        <section class="chase-details">
+            <details>
+                <summary>How it works</summary>
+                <p>The garden runs on the server at about five ticks a second. In corridors and corners a moth has only one way on, so it only needs a decision at junctions. As soon as a moth's next junction is known, the page asks the selected model which way to turn there, with one choice per open passage and how far the firefly would be after each.</p>
+                <p>Each moth has its own temper in the prompt: Dusk stalks, Ember ambushes ahead of you, Haze drifts between waypoints, and Pip pincers you from the side opposite Dusk. The game never waits for the model. If a moth reaches its junction before the answer arrives, it turns on reflex toward the same goal and the late answer is dropped. At most one request per moth is in flight, and one game is capped at @Director.MaxRequests requests.</p>
+            </details>
+            @if (LastRequest is not null)
+            {
+                <details><summary>Last request JSON</summary><pre>@JsonSerializer.Serialize(LastRequest, PrettyJson)</pre></details>
+            }
+        </section>
+    </aside>
+</div>
