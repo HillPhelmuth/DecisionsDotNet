@@ -18,9 +18,7 @@ if (await jev.MatchesAsync("My card was charged twice.", "Is the customer asking
     Console.WriteLine("Route to billing");
 ```
 
-<!-- DEMO-GIF: record ~10 seconds of the demo (support triage or the chase game), save it as docs/images/demo.gif, then replace this comment with:
 <p align="center"><img src="docs/images/demo.gif" alt="The DecisionsDotNet demo app triaging a support ticket" width="800"></p>
--->
 
 **[Try the live demo](https://decisionsdemo-brauczcchdhshfbe.westus3-01.azurewebsites.net/)** or [run it locally](#demo).
 
