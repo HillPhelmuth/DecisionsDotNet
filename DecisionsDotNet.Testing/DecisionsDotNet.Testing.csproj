@@ -11,9 +11,9 @@
   <PropertyGroup>
     <PackageId>DecisionsDotNet.Testing</PackageId>
     <Version>$(DecisionsVersion)</Version>
-    <Title>DecisionsDotNet.Testing - test doubles for DecisionsDotNet</Title>
-    <Description>A scripted fake and a recording wrapper for the DecisionsDotNet IDecisionsClient, so code that branches on Decisions answers can be unit tested without HTTP stubs or a provider key.</Description>
-    <PackageTags>Jev;TypeSafe;OpenRouter;OpenAI;decisions;testing;fakes</PackageTags>
+    <Title>DecisionsDotNet.Testing</Title>
+    <Description>A scripted FakeDecisionsClient and a RecordingDecisionsClient wrapper for DecisionsDotNet, so code that branches on LLM decisions can be unit tested without HTTP stubs or a provider key.</Description>
+    <PackageTags>decisions;llm;ai;testing;fakes;test-doubles;unit-testing;xunit</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

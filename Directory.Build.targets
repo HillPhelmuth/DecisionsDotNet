@@ -2,6 +2,7 @@
 
   <ItemGroup Condition="'$(IsShippedPackage)' == 'true'">
     <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="3.3.4" PrivateAssets="all" />
+    <None Include="$(PackageIconSource)" Pack="true" PackagePath="/icon.png" Visible="false" />
   </ItemGroup>
 
 </Project>

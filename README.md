@@ -1,6 +1,30 @@
 # DecisionsDotNet and ExtractionsDotNet
 
-.NET 10 SDKs for calibrated decision and extraction models: TypeSafe AI's Jev models, the Decisions and Extractions APIs from OpenRouter and OpenAI, and Microsoft's decision models in Microsoft Foundry and Azure OpenAI.
+[![DecisionsDotNet on NuGet](https://img.shields.io/nuget/v/DecisionsDotNet?label=DecisionsDotNet&logo=nuget)](https://www.nuget.org/packages/DecisionsDotNet)
+[![DecisionsDotNet downloads](https://img.shields.io/nuget/dt/DecisionsDotNet?label=downloads)](https://www.nuget.org/packages/DecisionsDotNet)
+[![ExtractionsDotNet on NuGet](https://img.shields.io/nuget/v/ExtractionsDotNet?label=ExtractionsDotNet&logo=nuget)](https://www.nuget.org/packages/ExtractionsDotNet)
+[![ExtractionsDotNet downloads](https://img.shields.io/nuget/dt/ExtractionsDotNet?label=downloads)](https://www.nuget.org/packages/ExtractionsDotNet)
+[![.NET 10](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet)](https://dotnet.microsoft.com/download/dotnet/10.0)
+[![MIT license](https://img.shields.io/github/license/HillPhelmuth/DecisionsDotNet)](LICENSE)
+
+Ask an LLM yes/no, choice, and score questions from C# and get calibrated probabilities back as typed answers you can branch on. .NET 10 SDKs for TypeSafe AI's Jev models, the Decisions and Extractions APIs from OpenRouter and OpenAI, and Microsoft's decision models in Microsoft Foundry and Azure OpenAI.
+
+```csharp
+using DecisionsDotNet;
+
+using var client = OpenRouterDecisionsClient.FromEnvironment(); // reads OPENROUTER_API_KEY
+var jev = client.ForModel("typesafe/jev-1.14");
+if (await jev.MatchesAsync("My card was charged twice.", "Is the customer asking for a refund?", minProbability: 0.75))
+    Console.WriteLine("Route to billing");
+```
+
+<!-- DEMO-GIF: record ~10 seconds of the demo (support triage or the chase game), save it as docs/images/demo.gif, then replace this comment with:
+<p align="center"><img src="docs/images/demo.gif" alt="The DecisionsDotNet demo app triaging a support ticket" width="800"></p>
+-->
+
+<!-- DEMO-URL: replace this comment with the deployed App Service address:
+**[Try the live demo](https://YOUR-APP.azurewebsites.net)** or [run it locally](#demo).
+-->
 
 | Package | What it does | Docs |
 | --- | --- | --- |

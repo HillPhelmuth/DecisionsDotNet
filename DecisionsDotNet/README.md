@@ -1,10 +1,21 @@
 # DecisionsDotNet
 
-A type-safe C# client for TypeSafe AI's Jev models, through TypeSafe's direct API, OpenRouter's Decisions API, or OpenAI's Decisions API, and for Microsoft's decision models in Microsoft Foundry and Azure OpenAI. Targets .NET 10 and uses `System.Text.Json`, `HttpClient`, and Microsoft.Extensions.Http for dependency injection.
+Ask an LLM a yes/no, choice, or score question from C# and get a calibrated probability back, then branch on it like any other condition:
+
+```csharp
+using DecisionsDotNet;
+
+using var client = OpenRouterDecisionsClient.FromEnvironment(); // reads OPENROUTER_API_KEY
+var jev = client.ForModel("typesafe/jev-1.14");
+if (await jev.MatchesAsync("My card was charged twice.", "Is the customer asking for a refund?", minProbability: 0.75))
+    Console.WriteLine("Route to billing");
+```
 
 ```powershell
 dotnet add package DecisionsDotNet
 ```
+
+One `IDecisionsClient` covers TypeSafe AI's Jev models (direct, or through the OpenRouter and OpenAI Decisions APIs) and Microsoft's decision models in Microsoft Foundry and Azure OpenAI. Targets .NET 10 and uses `System.Text.Json`, `HttpClient`, and Microsoft.Extensions.Http for dependency injection. [Source, demo, and changelog on GitHub](https://github.com/HillPhelmuth/DecisionsDotNet).
 
 Companion packages: [DecisionsDotNet.AI](https://www.nuget.org/packages/DecisionsDotNet.AI) exposes these clients as Microsoft.Extensions.AI tools, and [ExtractionsDotNet](https://www.nuget.org/packages/ExtractionsDotNet) extracts typed fields from text, images, and PDFs through OpenRouter.
 
@@ -401,7 +412,7 @@ var byMood = await model.OrderByScoreAsync<Frustration, Ticket>(tickets, t => t.
 
 To inject a bound model, register it after the client: `services.AddDecisionModel("typesafe/jev-1.14")`, or `AddKeyedDecisionModel(key, modelId, clientServiceKey)` beside keyed clients. Hand-built requests still name their model; `DecisionModel.EvaluateAsync(builder)` builds one with the bound model.
 
-For ASP.NET Core filters, FluentValidation rules and MediatR behaviors built on these verbs, see the [recipes](https://github.com/HillPhelmuth/JevDotNet/blob/main/docs/recipes.md). For unit tests, [DecisionsDotNet.Testing](https://www.nuget.org/packages/DecisionsDotNet.Testing) has a scripted `FakeDecisionsClient` and a `RecordingDecisionsClient`.
+For ASP.NET Core filters, FluentValidation rules and MediatR behaviors built on these verbs, see the [recipes](https://github.com/HillPhelmuth/DecisionsDotNet/blob/main/docs/recipes.md). For unit tests, [DecisionsDotNet.Testing](https://www.nuget.org/packages/DecisionsDotNet.Testing) has a scripted `FakeDecisionsClient` and a `RecordingDecisionsClient`.
 
 ## Pipelines: caching, fallback, logging, and tracing
 
@@ -434,7 +445,7 @@ Derive from `DelegatingDecisionsClient` for your own decorator and add it with `
 
 ## Agents and chat tools
 
-The companion package `DecisionsDotNet.AI` exposes any `IDecisionsClient` as a Microsoft.Extensions.AI `AIFunction`, so a chat client or Microsoft Agent Framework agent can call Jev, OpenRouter, or OpenAI Decisions as a tool. `AsAIFunction` asks a fixed set of questions about text the model supplies; `AsOpenDecisionsAIFunction` lets the model write its own yes/no, choice, and score questions. See [its README](https://github.com/HillPhelmuth/JevDotNet/blob/main/DecisionsDotNet.AI/README.md).
+The companion package `DecisionsDotNet.AI` exposes any `IDecisionsClient` as a Microsoft.Extensions.AI `AIFunction`, so a chat client or Microsoft Agent Framework agent can call Jev, OpenRouter, or OpenAI Decisions as a tool. `AsAIFunction` asks a fixed set of questions about text the model supplies; `AsOpenDecisionsAIFunction` lets the model write its own yes/no, choice, and score questions. See [its README](https://github.com/HillPhelmuth/DecisionsDotNet/blob/main/DecisionsDotNet.AI/README.md).
 
 ## Dependency injection
 
@@ -480,4 +491,4 @@ From 1.0.0 the public types in this package follow semantic versioning: breaking
 - **Upstream APIs.** OpenRouter's Decisions route is still served under `/api/alpha/`, and TypeSafe labels image input on its direct API as experimental. When a provider changes its wire format, the SDK adapts in a minor or patch release and keeps its own types stable where it can.
 - **Experimental members.** Anything marked `[Experimental]` may change in a minor release: currently, under `DECISIONS002`, decision sets (`DecideAsync<T>`), the collection verbs, the `DecisionsDotNet.Pipeline` namespace, the guardrail and workflow helpers in `DecisionsDotNet.AI`, and everything in `DecisionsDotNet.Testing` and `DecisionsDotNet.Caching`. `ForModel`, `DecisionModel`, its single-question verbs and their result types are stable from 1.1.0, as are the OpenAI, Foundry and Azure OpenAI clients.
 
-See the [changelog](https://github.com/HillPhelmuth/JevDotNet/blob/main/CHANGELOG.md) for the migration from 0.3.
+See the [changelog](https://github.com/HillPhelmuth/DecisionsDotNet/blob/main/CHANGELOG.md) for the migration from 0.3.
