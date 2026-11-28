@@ -63,7 +63,7 @@
         <div class="garden-board @(Game.BloomRemaining > 0 ? "blazing" : "")" tabindex="0" role="application"
              aria-label="Moth Garden maze. Arrow keys or W A S D steer the firefly. Space starts or pauses."
              style="--cols: @MothGardenMaze.Columns; --rows: @MothGardenMaze.Rows"
-             @ref="Board" @onkeydown="HandleKeyDownAsync" @onkeydown:preventDefault>
+             @ref="Board" @onkeydown="HandleKeyDownAsync">
             @for (var row = 0; row < MothGardenMaze.Rows; row++)
             {
                 @for (var column = 0; column < MothGardenMaze.Columns; column++)

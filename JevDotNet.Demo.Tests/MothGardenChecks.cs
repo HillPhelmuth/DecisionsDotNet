@@ -175,6 +175,40 @@ public sealed class MothGardenChecks
     }
 
     [Fact]
+    public async Task ATimedOutRequestFreesTheMothForItsNextJunctionAsync()
+    {
+        var game = new MothGardenGame();
+        game.Start();
+        var fake = new FakeDecisionsClient().Throw(new TaskCanceledException("The request timed out."));
+        var director = new MothDirector(game, Inline);
+
+        await Task.WhenAll(director.Dispatch(fake.ForModel(Model), TestContext.Current.CancellationToken));
+
+        Assert.False(director.Halted);
+        Assert.Equal(director.Requests, director.Failures);
+        Assert.All(game.Moths, moth => Assert.False(director.IsDeciding(moth)));
+        Assert.Contains("timed out", director.LastError);
+
+        var dusk = game.Moths[0];
+        var ticket = dusk.Ticket;
+        while (dusk.Ticket == ticket) game.Advance();
+        var asked = director.Requests;
+        await Task.WhenAll(director.Dispatch(fake.ForModel(Model), TestContext.Current.CancellationToken));
+        Assert.True(director.Requests > asked);
+    }
+
+    [Fact]
+    public void OptionsReportTheDistanceLeftAfterTheTurn()
+    {
+        var game = new MothGardenGame();
+        game.Start();
+        var dusk = game.Moths[0];
+        var point = game.NextDecision(dusk)!;
+        foreach (var (heading, text) in point.Options)
+            Assert.Contains($"firefly would then be {MothGardenMaze.Distance(point.Junction.Step(heading), game.Firefly)} steps away", text);
+    }
+
+    [Fact]
     public async Task TheRequestCapStopsAskingAsync()
     {
         var game = new MothGardenGame();

@@ -165,11 +165,11 @@ public sealed class MothGardenGame
         foreach (var heading in Exits(junction, arriving))
         {
             var next = junction.Step(heading);
-            var toFirefly = MothGardenMaze.Distance(next, Firefly) + 1;
+            var toFirefly = MothGardenMaze.Distance(next, Firefly);
             var text = moth.IsDazzled
                 ? $"Fly {heading.Word()} to {next.Text}. The firefly would then be {toFirefly} steps away."
                 : $"Fly {heading.Word()} to {next.Text}. The firefly would then be {toFirefly} steps away" +
-                  (target == Firefly ? "." : $", and your goal at {target.Text} {MothGardenMaze.Distance(next, target) + 1} steps away.");
+                  (target == Firefly ? "." : $", and your goal at {target.Text} {MothGardenMaze.Distance(next, target)} steps away.");
             options[heading] = text;
         }
 

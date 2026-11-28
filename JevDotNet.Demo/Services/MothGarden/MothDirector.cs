@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Net;
-using System.Text.Json;
 using DecisionsDotNet;
 
 namespace JevDotNet.Demo.Services.MothGarden;
@@ -98,9 +97,9 @@ public sealed class MothDirector(MothGardenGame game, Func<Action, Task> apply, 
         {
             await apply(() => _inFlight.Remove(moth));
         }
-        catch (Exception error) when (error is DecisionsApiException or DecisionRefusedException or HttpRequestException
-            or JsonException or InvalidOperationException or KeyNotFoundException or ArgumentException)
+        catch (Exception error)
         {
+            // Anything else, including an HTTP timeout, is one failed decision: free the moth so its next junction gets asked.
             await apply(() =>
             {
                 _inFlight.Remove(moth);
@@ -118,6 +117,7 @@ public sealed class MothDirector(MothGardenGame game, Func<Action, Task> apply, 
         DecisionsApiException { StatusCode: HttpStatusCode.TooManyRequests } => "OpenRouter's rate limit was reached. Moths fly on reflex until requests succeed again.",
         DecisionsApiException api => $"OpenRouter returned HTTP {(int)api.StatusCode}. That moth turned on reflex.",
         DecisionRefusedException => "The model declined to pick a turn. That moth turned on reflex.",
+        OperationCanceledException => "A decision request timed out. That moth turned on reflex.",
         _ => $"{error.Message} That moth turned on reflex."
     };
 }

@@ -6,6 +6,7 @@ using JevDotNet.Demo.Services;
 using JevDotNet.Demo.Services.MothGarden;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.JSInterop;
 
 namespace JevDotNet.Demo.Components.Pages;
 
@@ -15,6 +16,7 @@ public partial class MothGarden
     private static readonly JsonSerializerOptions PrettyJson = new(JsonSerializerDefaults.Web) { WriteIndented = true };
 
     [Inject] private DemoEvaluationService Evaluation { get; set; } = default!;
+    [Inject] private IJSRuntime JS { get; set; } = default!;
 
     private MothGardenGame Game = new(Environment.TickCount);
     private MothDirector Director = default!;
@@ -32,6 +34,18 @@ public partial class MothGarden
     {
         UseModel = Evaluation.HasApiKey;
         Director = NewDirector();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try
+        {
+            // Blazor can only cancel every keydown or none. The module cancels just the steering keys and Space, so Tab still leaves the board.
+            await using var module = await JS.InvokeAsync<IJSObjectReference>("import", "./Components/Pages/MothGarden.razor.js");
+            await module.InvokeVoidAsync("captureSteeringKeys", Board);
+        }
+        catch (JSDisconnectedException) { }
     }
 
     private MothDirector NewDirector() => new(Game, action => Disposed ? Task.CompletedTask : InvokeAsync(action));
