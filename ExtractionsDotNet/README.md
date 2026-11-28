@@ -1,6 +1,17 @@
 # ExtractionsDotNet
 
-A .NET 10 client for OpenRouter's alpha Extractions API.
+Pull typed fields out of text, images, and PDFs with an LLM, with a confidence score wherever the model returns one:
+
+```csharp
+using ExtractionsDotNet;
+
+using var client = OpenRouterExtractionsClient.FromEnvironment(); // reads OPENROUTER_API_KEY
+var invoice = await client.ExtractAsync(new ExtractionRequest("cloudflare/clairic",
+    new Dictionary<string, ExtractionField> { ["total"] = new NumberField { Unit = "USD" } }) { State = "Invoice INV-2291. Total $1080." });
+Console.WriteLine(invoice.GetNumber("total").Value); // 1080
+```
+
+A .NET 10 client for OpenRouter's alpha Extractions API. [Source, demo, and changelog on GitHub](https://github.com/HillPhelmuth/DecisionsDotNet).
 
 ```powershell
 dotnet add package ExtractionsDotNet
@@ -109,4 +120,4 @@ Use `AddKeyedOpenRouterExtractionsClient(key, ...)` to register differently conf
 
 ## Stability
 
-From 1.0.0 the public types in this package follow semantic versioning. OpenRouter still serves Extractions under `/api/alpha/`, so the wire format can change underneath the SDK. When it does, the SDK adapts in a minor or patch release and keeps its own types stable where it can. See the [changelog](https://github.com/HillPhelmuth/JevDotNet/blob/main/CHANGELOG.md).
+From 1.0.0 the public types in this package follow semantic versioning. OpenRouter still serves Extractions under `/api/alpha/`, so the wire format can change underneath the SDK. When it does, the SDK adapts in a minor or patch release and keeps its own types stable where it can. See the [changelog](https://github.com/HillPhelmuth/DecisionsDotNet/blob/main/CHANGELOG.md).

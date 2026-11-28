@@ -15,7 +15,7 @@ namespace DecisionsDotNet.Caching;
 /// A cached response is returned as it was first received, including its <see cref="DecisionsResponse.Usage"/>, so usage on a
 /// cache hit does not mean tokens were billed again. Failures are never cached.
 /// </remarks>
-[Experimental("DECISIONS002", UrlFormat = "https://github.com/HillPhelmuth/JevDotNet/blob/main/CHANGELOG.md#experimental-apis")]
+[Experimental("DECISIONS002", UrlFormat = "https://github.com/HillPhelmuth/DecisionsDotNet/blob/main/CHANGELOG.md#experimental-apis")]
 public sealed class CachingDecisionsClient : DelegatingDecisionsClient
 {
     /// <summary>The tag added to every cache entry, for <see cref="HybridCache.RemoveByTagAsync(string, CancellationToken)"/>.</summary>
@@ -59,7 +59,7 @@ public sealed class CachingDecisionsClient : DelegatingDecisionsClient
 }
 
 /// <summary>Adds <see cref="CachingDecisionsClient"/> to a <see cref="DecisionsClientBuilder"/>.</summary>
-[Experimental("DECISIONS002", UrlFormat = "https://github.com/HillPhelmuth/JevDotNet/blob/main/CHANGELOG.md#experimental-apis")]
+[Experimental("DECISIONS002", UrlFormat = "https://github.com/HillPhelmuth/DecisionsDotNet/blob/main/CHANGELOG.md#experimental-apis")]
 public static class DecisionsCachingExtensions
 {
     /// <summary>

@@ -2,6 +2,8 @@
 
 Test doubles for [DecisionsDotNet](https://www.nuget.org/packages/DecisionsDotNet), so code that branches on Decisions answers can be unit tested without HTTP stubs or a provider key.
 
+[Source, demo, and changelog on GitHub](https://github.com/HillPhelmuth/DecisionsDotNet).
+
 ```powershell
 dotnet add package DecisionsDotNet.Testing
 ```

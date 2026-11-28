@@ -2,6 +2,8 @@
 
 Caches [DecisionsDotNet](https://www.nuget.org/packages/DecisionsDotNet) evaluations in `HybridCache`, so the same question about the same input is paid for once.
 
+[Source, demo, and changelog on GitHub](https://github.com/HillPhelmuth/DecisionsDotNet).
+
 ```powershell
 dotnet add package DecisionsDotNet.Caching
 ```
