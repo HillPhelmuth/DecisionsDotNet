@@ -9,9 +9,9 @@
   <PropertyGroup>
     <PackageId>DecisionsDotNet</PackageId>
     <Version>$(DecisionsVersion)</Version>
-    <Title>DecisionsDotNet - TypeSafe AI SystemOne, OpenRouter, OpenAI, Microsoft Foundry, and Azure OpenAI Decisions SDK</Title>
-    <Description>Type-safe .NET client for TypeSafe AI Jev models and the OpenRouter, OpenAI, Microsoft Foundry, and Azure OpenAI Decisions APIs, with typed decision questions and responses, dependency injection, cancellation, and bounded HTTP retries.</Description>
-    <PackageTags>Jev;TypeSafe;OpenRouter;OpenAI;Azure;AzureOpenAI;Foundry;AI;decisions;SDK;dotnet</PackageTags>
+    <Title>DecisionsDotNet</Title>
+    <Description>Ask an LLM yes/no, choice, score, and bounding-box questions from C# and get calibrated probabilities back as typed answers. One IDecisionsClient for the Decisions APIs of OpenRouter, OpenAI, Microsoft Foundry, Azure OpenAI, and TypeSafe AI (Jev), with a fluent request builder, if-statement verbs, batching, dependency injection, and bounded retries.</Description>
+    <PackageTags>decisions;llm;ai;classification;structured-output;openrouter;openai;azure-openai;foundry;typesafe;jev;sdk;dotnet</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

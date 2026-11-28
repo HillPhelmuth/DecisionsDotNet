@@ -1,6 +1,26 @@
 # DecisionsDotNet and ExtractionsDotNet
 
-.NET 10 SDKs for calibrated decision and extraction models: TypeSafe AI's Jev models, the Decisions and Extractions APIs from OpenRouter and OpenAI, and Microsoft's decision models in Microsoft Foundry and Azure OpenAI.
+[![DecisionsDotNet on NuGet](https://img.shields.io/nuget/v/DecisionsDotNet?label=DecisionsDotNet&logo=nuget)](https://www.nuget.org/packages/DecisionsDotNet)
+[![DecisionsDotNet downloads](https://img.shields.io/nuget/dt/DecisionsDotNet?label=downloads)](https://www.nuget.org/packages/DecisionsDotNet)
+[![ExtractionsDotNet on NuGet](https://img.shields.io/nuget/v/ExtractionsDotNet?label=ExtractionsDotNet&logo=nuget)](https://www.nuget.org/packages/ExtractionsDotNet)
+[![ExtractionsDotNet downloads](https://img.shields.io/nuget/dt/ExtractionsDotNet?label=downloads)](https://www.nuget.org/packages/ExtractionsDotNet)
+[![.NET 10](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet)](https://dotnet.microsoft.com/download/dotnet/10.0)
+[![MIT license](https://img.shields.io/github/license/HillPhelmuth/DecisionsDotNet)](LICENSE)
+
+Ask an LLM yes/no, choice, and score questions from C# and get calibrated probabilities back as typed answers you can branch on. .NET 10 SDKs for TypeSafe AI's Jev models, the Decisions and Extractions APIs from OpenRouter and OpenAI, and Microsoft's decision models in Microsoft Foundry and Azure OpenAI.
+
+```csharp
+using DecisionsDotNet;
+
+using var client = OpenRouterDecisionsClient.FromEnvironment(); // reads OPENROUTER_API_KEY
+var jev = client.ForModel("typesafe/jev-1.14");
+if (await jev.MatchesAsync("My card was charged twice.", "Is the customer asking for a refund?", minProbability: 0.75))
+    Console.WriteLine("Route to billing");
+```
+
+<p align="center"><img src="docs/images/demo.gif" alt="The DecisionsDotNet demo app triaging a support ticket" width="800"></p>
+
+**[Try the live demo](https://decisionsdemo-brauczcchdhshfbe.westus3-01.azurewebsites.net/)** or [run it locally](#demo).
 
 | Package | What it does | Docs |
 | --- | --- | --- |
@@ -22,7 +42,7 @@ dotnet add package ExtractionsDotNet
 
 ## Demo
 
-[JevDotNet.Demo](JevDotNet.Demo/README.md) is a Blazor Server app with support triage, image decisions, bulk triage, Jev as Judge, a chase game, and the Extractions Lab. It needs an OpenRouter API key:
+[JevDotNet.Demo](JevDotNet.Demo/README.md) ([live](https://decisionsdemo-brauczcchdhshfbe.westus3-01.azurewebsites.net/)) is a Blazor Server app with support triage, image decisions, bulk triage, Jev as Judge, a chase game, and the Extractions Lab. It needs an OpenRouter API key:
 
 ```powershell
 dotnet user-secrets set "OpenRouter:ApiKey" "<your-api-key>" --project JevDotNet.Demo

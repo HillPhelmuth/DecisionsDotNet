@@ -5,5 +5,5 @@ internal static class AIDiagnostics
 {
     internal const string Conditions = "DECISIONS002";
 
-    internal const string UrlFormat = "https://github.com/HillPhelmuth/JevDotNet/blob/main/CHANGELOG.md#experimental-apis";
+    internal const string UrlFormat = "https://github.com/HillPhelmuth/DecisionsDotNet/blob/main/CHANGELOG.md#experimental-apis";
 }

@@ -11,9 +11,9 @@
   <PropertyGroup>
     <PackageId>DecisionsDotNet.AI</PackageId>
     <Version>$(DecisionsVersion)</Version>
-    <Title>DecisionsDotNet.AI - Decisions as Microsoft.Extensions.AI tools</Title>
-    <Description>Exposes any DecisionsDotNet IDecisionsClient (TypeSafe Jev, OpenRouter, or OpenAI Decisions) as a Microsoft.Extensions.AI AIFunction, so chat clients and Microsoft Agent Framework agents can call it as a tool.</Description>
-    <PackageTags>Jev;TypeSafe;OpenRouter;OpenAI;AI;decisions;tools;agents;Microsoft.Extensions.AI</PackageTags>
+    <Title>DecisionsDotNet.AI</Title>
+    <Description>Turns any DecisionsDotNet IDecisionsClient into a Microsoft.Extensions.AI AIFunction, so chat clients and Microsoft Agent Framework agents can call a calibrated classifier as a tool. Adds chat guardrails and workflow routing built on calibrated probabilities.</Description>
+    <PackageTags>decisions;llm;ai;classification;structured-output;tools;agents;guardrails;microsoft-extensions-ai;agent-framework;openrouter;openai;azure-openai</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

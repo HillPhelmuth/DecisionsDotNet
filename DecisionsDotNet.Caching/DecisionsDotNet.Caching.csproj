@@ -11,9 +11,9 @@
   <PropertyGroup>
     <PackageId>DecisionsDotNet.Caching</PackageId>
     <Version>$(DecisionsVersion)</Version>
-    <Title>DecisionsDotNet.Caching - HybridCache for DecisionsDotNet</Title>
-    <Description>Caches DecisionsDotNet evaluations in Microsoft.Extensions.Caching.Hybrid, keyed by a content hash of the state, questions, and model, as a DecisionsClientBuilder decorator.</Description>
-    <PackageTags>Jev;TypeSafe;OpenRouter;OpenAI;decisions;caching;HybridCache</PackageTags>
+    <Title>DecisionsDotNet.Caching</Title>
+    <Description>Caches DecisionsDotNet evaluations in HybridCache, keyed by a content hash of the state, questions, and model, so the same question about the same input is paid for once. Plugs into the DecisionsClientBuilder pipeline with UseCaching().</Description>
+    <PackageTags>decisions;llm;ai;caching;hybridcache;cost;openrouter;openai;azure-openai</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

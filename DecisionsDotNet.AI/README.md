@@ -2,6 +2,8 @@
 
 Turns any DecisionsDotNet `IDecisionsClient` (TypeSafe Jev, OpenRouter, or OpenAI Decisions) into a Microsoft.Extensions.AI `AIFunction`, so a chat client or a Microsoft Agent Framework agent can call a calibrated classifier as a tool. It also adds chat guardrails and workflow routing built on calibrated probabilities.
 
+[Source, demo, and changelog on GitHub](https://github.com/HillPhelmuth/DecisionsDotNet).
+
 ```powershell
 dotnet add package DecisionsDotNet.AI
 ```
@@ -99,4 +101,4 @@ Each `DecisionRoute` carries the original message and the `DecisionChoice` evide
 
 ## Stability
 
-This package always ships with the same version as `DecisionsDotNet` and follows semantic versioning from 1.0.0. The JSON the tools return to the model is part of that contract. See the [changelog](https://github.com/HillPhelmuth/JevDotNet/blob/main/CHANGELOG.md).
+This package always ships with the same version as `DecisionsDotNet` and follows semantic versioning from 1.0.0. The JSON the tools return to the model is part of that contract. See the [changelog](https://github.com/HillPhelmuth/DecisionsDotNet/blob/main/CHANGELOG.md).

@@ -29,9 +29,13 @@
     <Copyright>Copyright (c) Adam Holm</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageProjectUrl>https://github.com/HillPhelmuth/JevDotNet</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/HillPhelmuth/JevDotNet</RepositoryUrl>
-    <PackageReleaseNotes>https://github.com/HillPhelmuth/JevDotNet/blob/main/CHANGELOG.md</PackageReleaseNotes>
+    <PackageIcon>icon.png</PackageIcon>
+    <!-- Packed as icon.png by Directory.Build.targets. ExtractionsDotNet overrides this with its own icon. -->
+    <PackageIconSource>$(MSBuildThisFileDirectory)eng/assets/decisions-icon.png</PackageIconSource>
+    <PackageProjectUrl>https://github.com/HillPhelmuth/DecisionsDotNet</PackageProjectUrl>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/HillPhelmuth/DecisionsDotNet</RepositoryUrl>
+    <PackageReleaseNotes>https://github.com/HillPhelmuth/DecisionsDotNet/blob/main/CHANGELOG.md</PackageReleaseNotes>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
